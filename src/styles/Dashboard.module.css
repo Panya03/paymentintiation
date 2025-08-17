@@ -1,0 +1,91 @@
+.dashboardContainer { min-height: 100vh; background: #f3f6fb; }
+
+.sidebar { width: 200px; min-height: 100vh; background: #2355a6; color: #fff; }
+
+.logo { height: 60px; width: 60px; margin: 16px 0 24px 20px; border-radius: 40px; }
+.brandName { position: relative; top: -20px; left: 16px; font-weight: 600; }
+
+.menuItem { border-radius: 8px; padding: 8px 10px; }
+.menuItem:hover { background: #1b4891; }
+
+.submenu { position: absolute; left: 100%; top: 10%; background: #1b4891; color: #fff;
+  border-radius: 8px; box-shadow: 0 6px 14px rgba(0,0,0,0.15); min-width: 220px; z-index: 50; padding: 6px 0; }
+.submenuItem { padding: 10px 14px; text-align: left; }
+.submenuItem:hover { background: #163d7d; }
+
+.topNav { background: #2355a6; height: 64px; color: #fff; }
+.userprofile { display: flex; align-items: center; gap: 8px; }
+.logo1 { height: 30px; width: 30px; border-radius: 50%; }
+.logo2 { height: 20px; width: 20px; border-radius: 50%; }
+
+.dashCard { border-radius: 12px; background: #2355a6; border: none; color: #fff;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+.dashCardBody:hover { background: #1b4891; border-radius: 12px; }
+.dashButton { color: #0b2a66; background: #f1f5ff; border: none; }
+
+/* Make header look like your screenshot */
+.cardHeader {
+  background: #2355a6 !important;
+  color: #fff !important;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+/* Download button in header */
+.downloadBtn {
+  background: #f1f5ff;
+  border: none;
+  color: #0b2a66;
+}
+
+/* Give the table area contrast + padding so it actually shows */
+.tableWrap {
+  background: #ffffff;        /* white panel behind the table */
+  padding: 8px 12px;          /* breathing room */
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* Your table styling (scoped) */
+.modernServiceTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 10px;     /* “cards” effect for rows */
+  color: #111827;             /* ensure text is dark */
+}
+
+/* Header row */
+.modernServiceTable thead {
+  background: #2355a6;
+  color: #fff;
+}
+.modernServiceTable thead th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+}
+
+/* Body rows */
+.modernServiceTable tbody tr {
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  border-radius: 8px;
+}
+.modernServiceTable tbody td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  color: #1f2937;            /* dark text */
+}
+
+/* Optional: small badges look crisp on white */
+.modernServiceTable .badge {
+  font-size: 0.85rem;
+  color: #111827;
+}
+
+.downloadBtn { background: #f1f5ff; border: none; color: #0b2a66; }
+
+.modernServiceTable { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+.modernServiceTable thead { background: #2355a6; color: #fff; }
+.modernServiceTable thead th { padding: 12px; text-align: left; }
+.modernServiceTable tbody tr { background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border-radius: 8px; }

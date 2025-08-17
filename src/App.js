@@ -1,25 +1,17 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Dashboard from "./components/Dashboard";
+import PaymentForm from "./components/PaymentForm";
 
-function App() {
+export default function App() {
+  const role = "creator"; // use "creator" to see the CREATE → Payroll submenu
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Dashboard role={role} />} />
+        <Route path="/payroll" element={<PaymentForm />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
