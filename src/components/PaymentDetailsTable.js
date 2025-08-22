@@ -2,9 +2,12 @@ import React from 'react';
 import { Plus } from 'lucide-react';
 import PaymentRow from './PaymentRow';
 import UploadButton from './UploadButton';
-
+import DownloadTemplateButton from './DownloadTemplateButton';
+import { useState } from 'react';
 // Payment Details Table Component
 const PaymentDetailsTable = ({ rows, updateRow, addRow, removeRow, errors, currentPage, totalPages, onPageChange, canAddMore }) => {
+  const [hover, setHover] = useState(false);
+
   return (
     <div className="card shadow-sm">
       <div className="card-header border-bottom">
@@ -16,14 +19,22 @@ const PaymentDetailsTable = ({ rows, updateRow, addRow, removeRow, errors, curre
             </span>
           </div>
           <div className="d-flex align-items-center">
+            <DownloadTemplateButton/>
             <UploadButton />
             <button
               onClick={addRow}
               disabled={!canAddMore}
               className={`btn ${canAddMore ? 'btn-primary' : 'btn-secondary'} d-inline-flex align-items-center`}
-              style={{ backgroundColor: "#00539B", borderColor: "#00539B", color: "white" }}
-            >
-              <Plus className="me-2" style={{ backgroundColor: "#00539B", height: '16px'}} />
+               onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        backgroundColor: hover ? "#0D6EFD" : "white",
+        borderColor: "#0D6EFD",
+        color: hover ? "white" : "#0D6EFD",
+        transition: "all 0.2s ease"
+      }}
+        >
+              <Plus className="me-2" style={{ backgroundColor: "", height: '16px'}} />
               Add Payment
             </button>
           </div>
