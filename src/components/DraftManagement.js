@@ -3,15 +3,17 @@ import { ArrowLeft, FileText, Calendar, DollarSign, Edit, Trash2, Plus } from "l
 import { loadDrafts,deleteDraftFromStorage, persistDrafts,saveDraftToStorage } from "../utils/draftUtils";
 import Status from "./Status";
 
-const DraftManagement = ({ onEditDraft, onBackToCreate }) => { // ⬅️ removed drafts, onDeleteDraft
-  const [drafts, setDrafts] = useState([]);                    // ⬅️ local drafts
+const DraftManagement = ({ onEditDraft, onBackToCreate }) => { 
+  const [drafts, setDrafts] = useState([]);                   
   const [selectedDrafts, setSelectedDrafts] = useState([]);
+  const [hover, setHover] = useState(false);
+  const [hover1, setHover1] = useState(false);
 
   useEffect(() => {
     setDrafts(loadDrafts());
   }, []);
 
-  const onDeleteDraft = (id) => {                              // ⬅️ local delete
+  const onDeleteDraft = (id) => {                              
     const updated = deleteDraftFromStorage(id);
     setDrafts(updated);
     setSelectedDrafts(prev => prev.filter(x => x !== id));
@@ -118,8 +120,16 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => { // ⬅️ removed
               <button
                 className="btn btn-primary btn-sm d-flex align-items-center"
                 onClick={onBackToCreate}
-                style={{ backgroundColor: "#00539B", borderColor: "#0072CE" }}
-              >
+               
+      onMouseEnter={() => setHover1(true)}
+      onMouseLeave={() => setHover1(false)}
+      style={{
+        backgroundColor: hover1 ? "#0D6EFD" : "white",
+        borderColor: "#0D6EFD",
+        color: hover1 ? "white" : "#0D6EFD",
+        transition: "all 0.2s ease"
+      }}
+    >
                 <Plus size={16} className="me-1" />
                 New Payment Instruction
               </button>
@@ -163,8 +173,15 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => { // ⬅️ removed
                       <button
                         className="btn btn-primary"
                         onClick={onBackToCreate}
-                        style={{ backgroundColor: "#0072CE", borderColor: "#0072CE" }}
-                      >
+                        onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        backgroundColor: hover ? "#0D6EFD" : "white",
+        borderColor: "#0D6EFD",
+        color: hover ? "white" : "#0D6EFD",
+        transition: "all 0.2s ease"
+      }}
+    >
                         Create New Payment Instruction
                       </button>
                     </td>
