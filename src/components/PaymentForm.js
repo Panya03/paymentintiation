@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { Save, Send, FileText} from 'lucide-react';
+<<<<<<< HEAD
 import Header from './Header';
+=======
+
+>>>>>>> d158b42 (merged and routed paymentform to dashboard)
 import InstructionDetails from './InstructionDetails';
 import PaymentDetailsTable from './PaymentDetailsTable';
 import DraftManagement from './DraftManagement';
@@ -241,7 +245,11 @@ const handleDraft = () => {
  return (
   <div className="min-vh-100 bg-light">
   
+<<<<<<< HEAD
     {!showDrafts && <Header />}
+=======
+   
+>>>>>>> d158b42 (merged and routed paymentform to dashboard)
 
     {showDrafts ? (
   

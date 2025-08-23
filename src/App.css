@@ -8,6 +8,21 @@ h1, h2, h3, h4, h5, h6,
 .btn {
   font-family: 'Open Sans', Arial, Helvetica, sans-serif !important;
 }
+<<<<<<< HEAD
+=======
+.app-layout {
+  display: flex;         /* sidebar + content side by side */
+  height: 100vh;         /* full height layout */
+}
+
+.content {
+  flex: 1;
+  padding: 20px;
+  margin-top: 70px;   /* ✅ adjust height to your navbar */
+  overflow-y: auto;   /* scrollable if content grows */
+}
+
+>>>>>>> d158b42 (merged and routed paymentform to dashboard)
 
 
 
