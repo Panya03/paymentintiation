@@ -1,0 +1,178 @@
+package com.scb.payment.initiation.entity;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "batches")
+public class Batch {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "batch_id")
+    private Integer batchId;
+
+    @Column(name = "batch_name")
+    private String batchName;
+
+    @Column(name = "created_by")
+    private Integer createdBy;
+
+    @Column(name = "source_acr_id")
+    private String sourceAcrId; // Debit account
+
+    @Column(name = "currency")
+    private String currency; // Payment currency
+
+    @Column(name = "status")
+    private String status;
+
+    @Column(name = "is_draft")
+    private Boolean isDraft;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "tot_amt", precision = 18, scale = 2)
+    private BigDecimal totalAmount;
+
+    @Column(name = "tot_debit_amt", precision = 18, scale = 2)
+    private BigDecimal totalDebitAmount;
+
+    @Column(name = "comments", length = 500)
+    private String comments;
+
+    @Column(name = "num_of_payments")
+    private Integer numOfPayments;
+
+    @Column(name = "your_ref")
+    private String yourRef;
+
+    @Column(name = "payment_ref")
+    private String paymentRef;
+
+    @OneToMany(mappedBy = "batch", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PaymentInstruction> instructions = new ArrayList<>();
+
+    // Getters and setters
+    public Integer getBatchId() { return batchId; }
+    public void setBatchId(Integer batchId) { this.batchId = batchId; }
+    public String getBatchName() { return batchName; }
+    public void setBatchName(String batchName) { this.batchName = batchName; }
+    public Integer getCreatedBy() { return createdBy; }
+    public void setCreatedBy(Integer createdBy) { this.createdBy = createdBy; }
+    public String getSourceAcrId() { return sourceAcrId; }
+    public void setSourceAcrId(String sourceAcrId) { this.sourceAcrId = sourceAcrId; }
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public Boolean getIsDraft() { return isDraft; }
+    public void setIsDraft(Boolean isDraft) { this.isDraft = isDraft; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
+    public BigDecimal getTotalDebitAmount() { return totalDebitAmount; }
+    public void setTotalDebitAmount(BigDecimal totalDebitAmount) { this.totalDebitAmount = totalDebitAmount; }
+    public String getComments() { return comments; }
+    public void setComments(String comments) { this.comments = comments; }
+    public Integer getNumOfPayments() { return numOfPayments; }
+    public void setNumOfPayments(Integer numOfPayments) { this.numOfPayments = numOfPayments; }
+    public String getYourRef() { return yourRef; }
+    public void setYourRef(String yourRef) { this.yourRef = yourRef; }
+    public String getPaymentRef() { return paymentRef; }
+    public void setPaymentRef(String paymentRef) { this.paymentRef = paymentRef; }
+    public List<PaymentInstruction> getInstructions() { return instructions; }
+    public void setInstructions(List<PaymentInstruction> instructions) { this.instructions = instructions; }
+}
+
+
+
+package com.scb.payment.initiation.entity;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "payment_instructions")
+public class PaymentInstruction {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "batch_id", nullable = false)
+    private Batch batch;
+
+    @Column(name = "payment_method")
+    private String paymentMethod;
+
+    @Column(name = "payee_details")
+    private String payeeDetails;
+
+    @Column(name = "payee_nature")
+    private String payeeNature;
+
+    @Column(name = "bank_details")
+    private String bankDetails;
+
+    @Column(name = "your_reference")
+    private String yourReference;
+
+    @Column(name = "payment_reference")
+    private String paymentReference;
+
+    @Column(name = "amount", precision = 18, scale = 2)
+    private BigDecimal amount;
+
+    @Column(name = "notes_to_payee")
+    private String notesToPayee;
+
+    @Column(name = "additional_notes")
+    private String additionalNotes;
+
+    @Column(name = "value_date")
+    private LocalDate valueDate;
+
+    @Column(name = "debit_account")
+    private String debitAccount;
+
+    @Column(name = "payment_currency")
+    private String paymentCurrency;
+
+    // Getters and setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Batch getBatch() { return batch; }
+    public void setBatch(Batch batch) { this.batch = batch; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+    public String getPayeeDetails() { return payeeDetails; }
+    public void setPayeeDetails(String payeeDetails) { this.payeeDetails = payeeDetails; }
+    public String getPayeeNature() { return payeeNature; }
+    public void setPayeeNature(String payeeNature) { this.payeeNature = payeeNature; }
+    public String getBankDetails() { return bankDetails; }
+    public void setBankDetails(String bankDetails) { this.bankDetails = bankDetails; }
+    public String getYourReference() { return yourReference; }
+    public void setYourReference(String yourReference) { this.yourReference = yourReference; }
+    public String getPaymentReference() { return paymentReference; }
+    public void setPaymentReference(String paymentReference) { this.paymentReference = paymentReference; }
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
+    public String getNotesToPayee() { return notesToPayee; }
+    public void setNotesToPayee(String notesToPayee) { this.notesToPayee = notesToPayee; }
+    public String getAdditionalNotes() { return additionalNotes; }
+    public void setAdditionalNotes(String additionalNotes) { this.additionalNotes = additionalNotes; }
+    public LocalDate getValueDate() { return valueDate; }
+    public void setValueDate(LocalDate valueDate) { this.valueDate = valueDate; }
+    public String getDebitAccount() { return debitAccount; }
+    public void setDebitAccount(String debitAccount) { this.debitAccount = debitAccount; }
+    public String getPaymentCurrency() { return paymentCurrency; }
+    public void setPaymentCurrency(String paymentCurrency) { this.paymentCurrency = paymentCurrency; }
+}
