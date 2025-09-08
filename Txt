@@ -349,6 +349,8 @@ const PaymentForm = () => {
   );
 };
 
+export default PaymentForm;
+
 
 import React from 'react';
 import ValidationMessage from './ValidationMessage';
@@ -461,7 +463,6 @@ const InstructionDetails = ({ instructionDetails, updateInstructionDetails, erro
 };
 
 export default InstructionDetails;
-
 
 import React from 'react';
 import { Trash2, Info } from 'lucide-react';
@@ -606,5 +607,3 @@ const PaymentRow = ({ row, rowIndex, updateRow, removeRow, errors, isOdd }) => {
 };
 
 export default PaymentRow;
-
-export default PaymentForm;
