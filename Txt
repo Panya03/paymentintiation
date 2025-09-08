@@ -1,172 +1,386 @@
-import React from 'react';
-import { Plus } from 'lucide-react';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
-import DownloadTemplateButton from './DownloadTemplateButton';
+import React, { useEffect, useState } from 'react';
+import { Save, Send, FileText} from 'lucide-react';
+import InstructionDetails from './InstructionDetails';
+import PaymentDetailsTable from './PaymentDetailsTable';
+import DraftManagement from './DraftManagement';
+import { saveDraftToStorage } from '../utils/draftUtils';
+import "bootstrap/dist/css/bootstrap.min.css"
 
-// PaymentRow Component - handles individual row rendering
-const PaymentRow = ({ row, rowIndex, updateRow, removeRow, errors, isOdd }) => {
-  const handleInputChange = (field, value) => {
-    updateRow(rowIndex, field, value);
+// page component
+const PaymentForm = () => {
+  const ROWS_PER_PAGE = 10;
+
+  // instruction details - mapped to actual entity fields
+  const [instructionDetails, setInstructionDetails] = useState({
+    currency: '',
+    debitAccount: '',
+    accountNo: '',
+    valueDate: new Date().toISOString().split('T')[0],
+    companyName: '',
+    batchId: ''
+  });
+
+  // payment rows - mapped to actual entity fields
+  const [rows, setRows] = useState([{
+    paymentMethod: '',
+    payeeName: '',
+    beneficiary: '',
+    payeeBank: '',
+    payeeBankBranch: '',
+    payeeBankAddress: '',
+    referenceNo: '',
+    amount: '',
+    status: 'PENDING'
+  }]);
+
+  // Page state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // State for errors
+  const [errors, setErrors] = useState({
+    instruction: {},
+    rows: []
+  });
+
+  const [showDrafts, setShowDrafts] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // helper to load a draft back
+  const handleEditDraft = (draft) => {
+    if (!draft?.data) return;
+    setShowDrafts(false);
+    setInstructionDetails(draft.data.instructionDetails || instructionDetails);
+    setRows(draft.data.rows?.length ? draft.data.rows : rows);
   };
 
+  //page calculations
+  const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+  const endIndex = startIndex + ROWS_PER_PAGE;
+  const currentRows = rows.slice(startIndex, endIndex);
+  const canAddMore = rows.length < 100;
+
+  // Update instruction details
+  const updateInstructionDetails = (field, value) => {
+    setInstructionDetails(prev => ({ ...prev, [field]: value }));
+    
+    // Clear error when user updates field
+    if (errors.instruction[field]) {
+      setErrors(prev => ({
+        ...prev,
+        instruction: { ...prev.instruction, [field]: '' }
+      }));
+    }
+  };
+
+  // Update a row
+  const updateRow = (displayIndex, field, value) => {
+    const actualIndex = startIndex + displayIndex;
+    const newRows = [...rows];
+    newRows[actualIndex] = { ...newRows[actualIndex], [field]: value };
+    setRows(newRows);
+
+    // Clear error once field updates
+    if (errors.rows[actualIndex] && errors.rows[actualIndex][field]) {
+      const newErrors = [...errors.rows];
+      newErrors[actualIndex] = { ...newErrors[actualIndex], [field]: '' };
+      setErrors(prev => ({ ...prev, rows: newErrors }));
+    }
+  };
+
+  // Add new row
+  const addRow = () => {
+    if (canAddMore) {
+      const newRow = {
+        paymentMethod: '',
+        payeeName: '',
+        beneficiary: '',
+        payeeBank: '',
+        payeeBankBranch: '',
+        payeeBankAddress: '',
+        referenceNo: '',
+        amount: '',
+        status: 'PENDING'
+      };
+      setRows([...rows, newRow]);
+
+      // Navigate to the page with the new row
+      const newTotalPages = Math.ceil((rows.length + 1) / ROWS_PER_PAGE);
+      setCurrentPage(newTotalPages);
+    }
+  };
+
+  // Remove row
+  const removeRow = (displayIndex) => {
+    if (rows.length > 1) {
+      const actualIndex = startIndex + displayIndex;
+      const newRows = rows.filter((_, index) => index !== actualIndex);
+      setRows(newRows);
+
+      const newErrorRows = errors.rows.filter((_, index) => index !== actualIndex);
+      setErrors(prev => ({ ...prev, rows: newErrorRows }));
+
+      // Adjust current page if necessary
+      const newTotalPages = Math.max(1, Math.ceil(newRows.length / ROWS_PER_PAGE));
+      if (currentPage > newTotalPages) {
+        setCurrentPage(newTotalPages);
+      }
+    }
+  };
+
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors = { instruction: {}, rows: [] };
+
+    // Validate instruction details
+    if (!instructionDetails.currency) {
+      newErrors.instruction.currency = 'Currency is required';
+    }
+    if (!instructionDetails.debitAccount) {
+      newErrors.instruction.debitAccount = 'Debit account is required';
+    }
+    if (!instructionDetails.accountNo) {
+      newErrors.instruction.accountNo = 'Account number is required';
+    }
+    if (!instructionDetails.valueDate) {
+      newErrors.instruction.valueDate = 'Value date is required';
+    } else if (new Date(instructionDetails.valueDate) < new Date()) {
+      newErrors.instruction.valueDate = 'Value date must be today or later';
+    }
+    if (!instructionDetails.companyName) {
+      newErrors.instruction.companyName = 'Company name is required';
+    }
+    if (!instructionDetails.batchId) {
+      newErrors.instruction.batchId = 'Batch ID is required';
+    }
+
+    // Validate rows
+    rows.forEach((row, index) => {
+      const rowErrors = {};
+      if (!row.paymentMethod) rowErrors.paymentMethod = 'Required';
+      if (!row.payeeName) rowErrors.payeeName = 'Required';
+      if (!row.beneficiary) rowErrors.beneficiary = 'Required';
+      if (!row.payeeBank) rowErrors.payeeBank = 'Required';
+      if (!row.payeeBankBranch) rowErrors.payeeBankBranch = 'Required';
+      if (!row.payeeBankAddress) rowErrors.payeeBankAddress = 'Required';
+      if (!row.referenceNo) rowErrors.referenceNo = 'Required';
+      if (!row.amount) {
+        rowErrors.amount = 'Required';
+      } else if (parseFloat(row.amount) <= 0) {
+        rowErrors.amount = 'Amount must be positive';
+      }
+      newErrors.rows[index] = rowErrors;
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors.instruction).length === 0 && 
+           newErrors.rows.every(rowError => Object.keys(rowError).length === 0);
+  };
+
+  // Save draft
+  const handleDraft = () => {
+    if (!validateForm()) {
+      // If validation fails, do not save draft
+      return;
+    }
+
+    const draft = {
+      id: Date.now().toString(),
+      name: instructionDetails.companyName || "Untitled Draft",
+      debitAccount: instructionDetails.debitAccount,
+      status: "draft",
+      currency: instructionDetails.currency,
+      totalAmount: rows.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+      paymentCount: rows.length,
+      createdDate: new Date().toLocaleDateString(),
+      lastModified: new Date().toLocaleDateString(),
+      data: {
+        instructionDetails,
+        rows,
+      },
+    };
+
+    saveDraftToStorage(draft);
+    setShowDrafts(true); // Show the drafts screen
+  };
+
+  // Submit transaction
+  const submitTransaction = async () => {
+    if (!validateForm()) {
+      alert("Please fix all validation errors before submitting.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Create multiple transactions - one for each row
+      const transactionPromises = rows.map(async (row, index) => {
+        const transactionPayload = {
+          debitAccount: instructionDetails.debitAccount,
+          accountNo: instructionDetails.accountNo,
+          currency: instructionDetails.currency,
+          referenceNo: parseInt(row.referenceNo),
+          beneficiary: row.beneficiary,
+          companyName: instructionDetails.companyName,
+          valueDate: instructionDetails.valueDate,
+          amount: row.amount,
+          status: row.status,
+          paymentMethod: row.paymentMethod,
+          payeeName: row.payeeName,
+          payeeBank: row.payeeBank,
+          payeeBankBranch: row.payeeBankBranch,
+          payeeBankAddress: row.payeeBankAddress,
+          batchId: parseInt(instructionDetails.batchId)
+        };
+
+        const response = await fetch('http://localhost:8080/api/transactions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(transactionPayload)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+      });
+
+      const results = await Promise.all(transactionPromises);
+      
+      alert(`${results.length} transaction(s) submitted successfully! Transaction IDs: ${results.map(r => r.transactionId).join(', ')}`);
+      
+      // Reset form after successful submission
+      setInstructionDetails({
+        currency: '',
+        debitAccount: '',
+        accountNo: '',
+        valueDate: new Date().toISOString().split('T')[0],
+        companyName: '',
+        batchId: ''
+      });
+      setRows([{
+        paymentMethod: '',
+        payeeName: '',
+        beneficiary: '',
+        payeeBank: '',
+        payeeBankBranch: '',
+        payeeBankAddress: '',
+        referenceNo: '',
+        amount: '',
+        status: 'PENDING'
+      }]);
+      setCurrentPage(1);
+      setErrors({ instruction: {}, rows: [] });
+      
+    } catch (error) {
+      console.error('Transaction submission failed:', error);
+      alert(`Failed to submit transaction: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Calculate current row errors for display
+  const currentRowErrors = currentRows.map((_, displayIndex) => {
+    const actualIndex = startIndex + displayIndex;
+    return errors.rows[actualIndex] || {};
+  });
+
   return (
-    <tr className={isOdd ? 'bg-light' : ''}>
-      {/* Account No */}
-      <td className="px-3 py-3">
-        <input
-          type="text"
-          className={`form-control ${errors.accountNo ? 'is-invalid' : ''}`}
-          value={row.accountNo || ''}
-          onChange={(e) => handleInputChange('accountNo', e.target.value)}
-          placeholder="Account number"
+    <div className="min-vh-100 bg-light">
+      {!showDrafts}
+      {showDrafts ? (
+        <DraftManagement
+          onEditDraft={handleEditDraft}
+          onBackToCreate={() => setShowDrafts(false)}
         />
-        {errors.accountNo && (
-          <div className="invalid-feedback">{errors.accountNo}</div>
-        )}
-      </td>
+      ) : (
+        <div className="container-fluid px-4">
+          <div className="mb-4 mt-3">
+            <div className="d-flex justify-content-between align-items-center">
+              <h1 className="h2 fw-bold text-dark mb-0">
+                Create Payment Instructions
+              </h1>
+              <button
+                onClick={() => setShowDrafts(true)}
+                className="btn btn-outline-primary d-flex align-items-center"
+              >
+                <FileText className="me-2" size={18} />
+                View Drafts
+              </button>
+            </div>
+            <p className="text-muted mt-2 mb-0">
+              Set up your payment instructions with detailed beneficiary information
+            </p>
+          </div>
 
-      {/* Reference No */}
-      <td className="px-3 py-3">
-        <input
-          type="number"
-          className={`form-control ${errors.referenceNo ? 'is-invalid' : ''}`}
-          value={row.referenceNo || ''}
-          onChange={(e) => handleInputChange('referenceNo', e.target.value)}
-          placeholder="Reference number"
-        />
-        {errors.referenceNo && (
-          <div className="invalid-feedback">{errors.referenceNo}</div>
-        )}
-      </td>
+          <div className="mb-4">
+            <InstructionDetails
+              instructionDetails={instructionDetails}
+              updateInstructionDetails={updateInstructionDetails}
+              errors={errors.instruction}
+            />
+          </div>
 
-      {/* Beneficiary */}
-      <td className="px-3 py-3">
-        <input
-          type="text"
-          className={`form-control ${errors.beneficiary ? 'is-invalid' : ''}`}
-          value={row.beneficiary || ''}
-          onChange={(e) => handleInputChange('beneficiary', e.target.value)}
-          placeholder="Beneficiary name"
-        />
-        {errors.beneficiary && (
-          <div className="invalid-feedback">{errors.beneficiary}</div>
-        )}
-      </td>
+          <div className="mb-4">
+            <PaymentDetailsTable
+              rows={currentRows}
+              updateRow={updateRow}
+              addRow={addRow}
+              removeRow={removeRow}
+              errors={currentRowErrors}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              canAddMore={canAddMore}
+            />
+          </div>
 
-      {/* Amount */}
-      <td className="px-3 py-3">
-        <input
-          type="number"
-          step="0.01"
-          className={`form-control ${errors.amount ? 'is-invalid' : ''}`}
-          value={row.amount || ''}
-          onChange={(e) => handleInputChange('amount', e.target.value)}
-          placeholder="0.00"
-        />
-        {errors.amount && (
-          <div className="invalid-feedback">{errors.amount}</div>
-        )}
-      </td>
-
-      {/* Payment Method */}
-      <td className="px-3 py-3">
-        <select
-          className={`form-select ${errors.paymentMethod ? 'is-invalid' : ''}`}
-          value={row.paymentMethod || ''}
-          onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-        >
-          <option value="">Select method</option>
-          <option value="WIRE">Wire Transfer</option>
-          <option value="ACH">ACH</option>
-          <option value="CHECK">Check</option>
-          <option value="RTGS">RTGS</option>
-          <option value="NEFT">NEFT</option>
-        </select>
-        {errors.paymentMethod && (
-          <div className="invalid-feedback">{errors.paymentMethod}</div>
-        )}
-      </td>
-
-      {/* Payee Name */}
-      <td className="px-3 py-3">
-        <input
-          type="text"
-          className={`form-control ${errors.payeeName ? 'is-invalid' : ''}`}
-          value={row.payeeName || ''}
-          onChange={(e) => handleInputChange('payeeName', e.target.value)}
-          placeholder="Payee name"
-        />
-        {errors.payeeName && (
-          <div className="invalid-feedback">{errors.payeeName}</div>
-        )}
-      </td>
-
-      {/* Payee Bank */}
-      <td className="px-3 py-3">
-        <input
-          type="text"
-          className={`form-control ${errors.payeeBank ? 'is-invalid' : ''}`}
-          value={row.payeeBank || ''}
-          onChange={(e) => handleInputChange('payeeBank', e.target.value)}
-          placeholder="Bank name"
-        />
-        {errors.payeeBank && (
-          <div className="invalid-feedback">{errors.payeeBank}</div>
-        )}
-      </td>
-
-      {/* Bank Branch */}
-      <td className="px-3 py-3">
-        <input
-          type="text"
-          className={`form-control ${errors.payeeBankBranch ? 'is-invalid' : ''}`}
-          value={row.payeeBankBranch || ''}
-          onChange={(e) => handleInputChange('payeeBankBranch', e.target.value)}
-          placeholder="Branch name"
-        />
-        {errors.payeeBankBranch && (
-          <div className="invalid-feedback">{errors.payeeBankBranch}</div>
-        )}
-      </td>
-
-      {/* Bank Address */}
-      <td className="px-3 py-3">
-        <textarea
-          className={`form-control ${errors.payeeBankAddress ? 'is-invalid' : ''}`}
-          value={row.payeeBankAddress || ''}
-          onChange={(e) => handleInputChange('payeeBankAddress', e.target.value)}
-          placeholder="Bank address"
-          rows="2"
-          style={{ minHeight: '38px', resize: 'vertical' }}
-        />
-        {errors.payeeBankAddress && (
-          <div className="invalid-feedback">{errors.payeeBankAddress}</div>
-        )}
-      </td>
-
-      {/* Actions */}
-      <td className="px-3 py-3">
-        <button
-          type="button"
-          onClick={() => removeRow(rowIndex)}
-          className="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center"
-          style={{ width: '38px', height: '38px' }}
-          title="Remove row"
-        >
-          <Trash2 size={16} />
-        </button>
-      </td>
-    </tr>
+          <div className="d-flex justify-content-end gap-3 mt-4">
+            <button
+              onClick={handleDraft}
+              className="btn btn-secondary d-inline-flex align-items-center px-4 py-2"
+              disabled={isSubmitting}
+            >
+              <Save className="me-2" style={{ width: '20px', height: '20px' }} />
+              Save Draft
+            </button>
+            <button
+              onClick={submitTransaction}
+              className="btn btn-success d-inline-flex align-items-center px-4 py-2"
+              disabled={isSubmitting}
+            >
+              <Send className="me-2" style={{ width: '20px', height: '20px' }} />
+              {isSubmitting ? 'Submitting...' : 'Submit Transaction'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
-// Main PaymentDetailsTable Component
-const PaymentDetailsTable = ({ rows=[], updateRow, addRow, removeRow, errors=[], currentPage, totalPages, onPageChange, canAddMore }) => {
 
+
+import React from 'react';
+import { Plus } from 'lucide-react';
+import PaymentRow from './PaymentRow';
+import DownloadTemplateButton from './DownloadTemplateButton';
+import { useState } from 'react';
+
+const PaymentDetailsTable = ({ rows=[], updateRow, addRow, removeRow, errors, currentPage, totalPages, onPageChange, canAddMore }) => {
   const [hover, setHover] = useState(false);
-  const navigate = useNavigate();
 
   return (
     <div className="card shadow-sm">
@@ -180,25 +394,19 @@ const PaymentDetailsTable = ({ rows=[], updateRow, addRow, removeRow, errors=[],
           </div>
           <div className="d-flex align-items-center">
             <DownloadTemplateButton/>
-             <button
-              onClick={() => navigate("/cash/create/batch")} // navigate to batch page
-              className="btn btn-outline-success me-3"
-            >
-              Create a Batch
-            </button>
             <button
               onClick={addRow}
               disabled={!canAddMore}
               className={`btn ${canAddMore ? 'btn-primary' : 'btn-secondary'} d-inline-flex align-items-center`}
-               onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        backgroundColor: hover ? "#0D6EFD" : "white",
-        borderColor: "#0D6EFD",
-        color: hover ? "white" : "#0D6EFD",
-        transition: "all 0.2s ease"
-      }}
-        >
+              onMouseEnter={() => setHover(true)}
+              onMouseLeave={() => setHover(false)}
+              style={{
+                backgroundColor: hover ? "#0D6EFD" : "white",
+                borderColor: "#0D6EFD",
+                color: hover ? "white" : "#0D6EFD",
+                transition: "all 0.2s ease"
+              }}
+            >
               <Plus className="me-2" style={{ backgroundColor: "", height: '16px'}} />
               Add Payment
             </button>
@@ -210,34 +418,34 @@ const PaymentDetailsTable = ({ rows=[], updateRow, addRow, removeRow, errors=[],
         <table className="table mb-0">
           <thead className="table-light">
             <tr>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '150px'}}>
-                Account No
-              </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '120px'}}>
-                Reference No
-              </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '150px'}}>
-                Beneficiary
-              </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '120px'}}>
-                Amount
-              </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '140px'}}>
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
                 Payment Method
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '150px'}}>
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
                 Payee Name
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '150px'}}>
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+                Beneficiary
+              </th>
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
                 Payee Bank
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '120px'}}>
-                Bank Branch
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+                Payee Bank Branch
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '180px'}}>
-                Bank Address
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+                Payee Bank Address
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '80px'}}>
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+                Reference Number
+              </th>
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+                Amount
+              </th>
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+                Status
+              </th>
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
                 Actions
               </th>
             </tr>
@@ -250,7 +458,7 @@ const PaymentDetailsTable = ({ rows=[], updateRow, addRow, removeRow, errors=[],
                 rowIndex={index}
                 updateRow={updateRow}
                 removeRow={removeRow}
-                errors={errors[index] || {}}
+                errors={errors}
                 isOdd={index % 2 === 1}
               />
             ))}
@@ -297,3 +505,123 @@ const PaymentDetailsTable = ({ rows=[], updateRow, addRow, removeRow, errors=[],
 };
 
 export default PaymentDetailsTable;
+
+
+import React from 'react';
+
+const InstructionDetails = ({ instructionDetails, updateInstructionDetails, errors }) => {
+  return (
+    <div className="card shadow-sm">
+      <div className="card-header border-bottom">
+        <h3 className="h5 fw-semibold text-dark mb-0">Instruction Details</h3>
+      </div>
+      <div className="card-body">
+        <div className="row g-3">
+          <div className="col-md-4">
+            <label className="form-label fw-medium text-dark">
+              Currency <span className="text-danger">*</span>
+            </label>
+            <select
+              className={`form-select ${errors.currency ? 'is-invalid' : ''}`}
+              value={instructionDetails.currency}
+              onChange={(e) => updateInstructionDetails('currency', e.target.value)}
+            >
+              <option value="">Select Currency</option>
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="GBP">GBP - British Pound</option>
+              <option value="SGD">SGD - Singapore Dollar</option>
+              <option value="THB">THB - Thai Baht</option>
+            </select>
+            {errors.currency && (
+              <div className="invalid-feedback">{errors.currency}</div>
+            )}
+          </div>
+
+          <div className="col-md-4">
+            <label className="form-label fw-medium text-dark">
+              Debit Account <span className="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              className={`form-control ${errors.debitAccount ? 'is-invalid' : ''}`}
+              value={instructionDetails.debitAccount}
+              onChange={(e) => updateInstructionDetails('debitAccount', e.target.value)}
+              placeholder="Enter debit account"
+            />
+            {errors.debitAccount && (
+              <div className="invalid-feedback">{errors.debitAccount}</div>
+            )}
+          </div>
+
+          <div className="col-md-4">
+            <label className="form-label fw-medium text-dark">
+              Account Number <span className="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              className={`form-control ${errors.accountNo ? 'is-invalid' : ''}`}
+              value={instructionDetails.accountNo}
+              onChange={(e) => updateInstructionDetails('accountNo', e.target.value)}
+              placeholder="Enter account number"
+            />
+            {errors.accountNo && (
+              <div className="invalid-feedback">{errors.accountNo}</div>
+            )}
+          </div>
+
+          <div className="col-md-4">
+            <label className="form-label fw-medium text-dark">
+              Value Date <span className="text-danger">*</span>
+            </label>
+            <input
+              type="date"
+              className={`form-control ${errors.valueDate ? 'is-invalid' : ''}`}
+              value={instructionDetails.valueDate}
+              onChange={(e) => updateInstructionDetails('valueDate', e.target.value)}
+            />
+            {errors.valueDate && (
+              <div className="invalid-feedback">{errors.valueDate}</div>
+            )}
+          </div>
+
+          <div className="col-md-4">
+            <label className="form-label fw-medium text-dark">
+              Company Name <span className="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              className={`form-control ${errors.companyName ? 'is-invalid' : ''}`}
+              value={instructionDetails.companyName}
+              onChange={(e) => updateInstructionDetails('companyName', e.target.value)}
+              placeholder="Enter company name"
+            />
+            {errors.companyName && (
+              <div className="invalid-feedback">{errors.companyName}</div>
+            )}
+          </div>
+
+          <div className="col-md-4">
+            <label className="form-label fw-medium text-dark">
+              Batch ID <span className="text-danger">*</span>
+            </label>
+            <input
+              type="number"
+              className={`form-control ${errors.batchId ? 'is-invalid' : ''}`}
+              value={instructionDetails.batchId}
+              onChange={(e) => updateInstructionDetails('batchId', e.target.value)}
+              placeholder="Enter batch ID"
+            />
+            {errors.batchId && (
+              <div className="invalid-feedback">{errors.batchId}</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InstructionDetails;
+
+export default PaymentForm;
