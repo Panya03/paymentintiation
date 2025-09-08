@@ -1,449 +1,147 @@
 import React from 'react';
+import { Trash2, Info } from 'lucide-react';
 import ValidationMessage from './ValidationMessage';
 
-// Instruction Details Component
-const InstructionDetails = ({ instructionDetails, updateInstructionDetails, errors }) => {
-  const currencies = ['', 'USD', 'EUR', 'GBP', 'SGD', 'HKD', 'JPY'];
-  const debitAccounts = ['', '1234567890 - USD Operating Account', '0987654321 - EUR Business Account', '1122334455 - GBP Current Account'];
+// Payment Row Component
+const PaymentRow = ({ row, rowIndex, updateRow, removeRow, errors, isOdd }) => {
+  const paymentMethods = ['', 'Wire Transfer', 'ACH', 'Check', 'Online Transfer'];
+  const payeeDetails = ['', 'ABC Corporation Ltd.', 'XYZ Trading Co.', 'Global Services Inc.', 'Tech Solutions LLC'];
+  const payeeNatures = ['', 'Corporate', 'Individual', 'Government', 'Non-Profit'];
+  const bankDetails = ['', 'Chase Bank - 123456789', 'Bank of America - 987654321', 'Wells Fargo - 456789123'];
+
+  const rowErrors = errors[rowIndex] || {};
 
   return (
-    <div className="card shadow-sm mb-4">
-      <div className="card-body">
-        <h3 className="h5 fw-semibold text-dark mb-4">Instruction Details</h3>
-        <div className="row g-3">
-          <div className="col-md-4">
-            <label className="form-label fw-medium text-dark mb-1">
-              Payment Currency *
-            </label>
-            <select
-              className={`form-select ${errors.currency ? 'is-invalid' : ''}`}
-              value={instructionDetails.currency}
-              onChange={(e) => updateInstructionDetails('currency', e.target.value)}
-            >
-              {currencies.map((currency, index) => (
-                <option key={index} value={currency}>
-                  {currency || 'Select Currency'}
-                </option>
-              ))}
-            </select>
-            <ValidationMessage message={errors.currency} />
-          </div>
+    <tr className={isOdd ? 'table-light' : ''}>
+      <td className="px-3 py-3 border-bottom">
+        <select
+          className={`form-select form-select-sm ${rowErrors.paymentMethod ? 'is-invalid' : ''}`}
+          value={row.paymentMethod}
+          onChange={(e) => updateRow(rowIndex, 'paymentMethod', e.target.value)}
+        >
+          {paymentMethods.map((method, index) => (
+            <option key={index} value={method}>
+              {method || 'Select Method'}
+            </option>
+          ))}
+        </select>
+        <ValidationMessage message={rowErrors.paymentMethod} />
+      </td>
 
-          <div className="col-md-4">
-            <label className="form-label fw-medium text-dark mb-1">
-              Debit Account *
-            </label>
-            <select
-              className={`form-select ${errors.debitAccount ? 'is-invalid' : ''}`}
-              value={instructionDetails.debitAccount}
-              onChange={(e) => updateInstructionDetails('debitAccount', e.target.value)}
-            >
-              {debitAccounts.map((account, index) => (
-                <option key={index} value={account}>
-                  {account || 'Choose a debit account'}
-                </option>
-              ))}
-            </select>
-            <ValidationMessage message={errors.debitAccount} />
-          </div>
+      <td className="px-3 py-3 border-bottom">
+        <select
+          className={`form-select form-select-sm ${rowErrors.payeeDetails ? 'is-invalid' : ''}`}
+          value={row.payeeDetails}
+          onChange={(e) => updateRow(rowIndex, 'payeeDetails', e.target.value)}
+        >
+          {payeeDetails.map((payee, index) => (
+            <option key={index} value={payee}>
+              {payee || 'Select Payee'}
+            </option>
+          ))}
+        </select>
+        <ValidationMessage message={rowErrors.payeeDetails} />
+      </td>
 
-          <div className="col-md-4">
-            <label className="form-label fw-medium text-dark mb-1">
-              Value Date *
-            </label>
-            <input
-              type="date"
-              className={`form-control ${errors.valueDate ? 'is-invalid' : ''}`}
-              value={instructionDetails.valueDate}
-              onChange={(e) => updateInstructionDetails('valueDate', e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-            />
-            <ValidationMessage message={errors.valueDate} />
-          </div>
+      <td className="px-3 py-3 border-bottom">
+        <select
+          className={`form-select form-select-sm ${rowErrors.payeeNature ? 'is-invalid' : ''}`}
+          value={row.payeeNature}
+          onChange={(e) => updateRow(rowIndex, 'payeeNature', e.target.value)}
+        >
+          {payeeNatures.map((nature, index) => (
+            <option key={index} value={nature}>
+              {nature || 'Select Nature'}
+            </option>
+          ))}
+        </select>
+        <ValidationMessage message={rowErrors.payeeNature} />
+      </td>
 
-          <div className="col-md-6">
-            <label className="form-label fw-medium text-dark mb-1">
-              Account Number *
-            </label>
-            <input
-              type="text"
-              className={`form-control ${errors.accountNo ? 'is-invalid' : ''}`}
-              value={instructionDetails.accountNo || ''}
-              onChange={(e) => updateInstructionDetails('accountNo', e.target.value)}
-              placeholder="Enter account number"
-            />
-            <ValidationMessage message={errors.accountNo} />
-          </div>
+      <td className="px-3 py-3 border-bottom">
+        <select
+          className={`form-select form-select-sm ${rowErrors.bankDetails ? 'is-invalid' : ''}`}
+          value={row.bankDetails}
+          onChange={(e) => updateRow(rowIndex, 'bankDetails', e.target.value)}
+        >
+          {bankDetails.map((bank, index) => (
+            <option key={index} value={bank}>
+              {bank || 'Select Bank'}
+            </option>
+          ))}
+        </select>
+        <ValidationMessage message={rowErrors.bankDetails} />
+      </td>
 
-          <div className="col-md-6">
-            <label className="form-label fw-medium text-dark mb-1">
-              Company Name *
-            </label>
-            <input
-              type="text"
-              className={`form-control ${errors.companyName ? 'is-invalid' : ''}`}
-              value={instructionDetails.companyName || ''}
-              onChange={(e) => updateInstructionDetails('companyName', e.target.value)}
-              placeholder="Enter company name"
-            />
-            <ValidationMessage message={errors.companyName} />
-          </div>
+      <td className="px-3 py-3 border-bottom">
+        <div className="d-flex align-items-center">
+          <input
+            type="text"
+            className={`form-control form-control-sm ${rowErrors.yourReference ? 'is-invalid' : ''}`}
+            value={row.yourReference}
+            onChange={(e) => updateRow(rowIndex, 'yourReference', e.target.value)}
+            placeholder="Reference"
+          />
+          <Info className="ms-2 text-muted" style={{width: '16px', height: '16px'}} title="Your internal reference for this payment" />
         </div>
-      </div>
-    </div>
-  );
-};
+        <ValidationMessage message={rowErrors.yourReference} />
+      </td>
 
-import React, { useEffect, useState } from 'react';
-import { Save, Send, FileText} from 'lucide-react';
-import InstructionDetails from './InstructionDetails';
-import PaymentDetailsTable from './PaymentDetailsTable';
-import DraftManagement from './DraftManagement';
-import { saveDraftToStorage } from '../utils/draftUtils';
-import "bootstrap/dist/css/bootstrap.min.css";
-import API from "../axiosInstance";
-
-// page component
-const PaymentForm = () => {
-  const ROWS_PER_PAGE = 10;
-
-  // instruction details - mapped to actual entity fields
-  const [instructionDetails, setInstructionDetails] = useState({
-    currency: '',
-    debitAccount: '',
-    accountNo: '',
-    valueDate: new Date().toISOString().split('T')[0],
-    companyName: '',
-   
-  });
-
-  // payment rows - mapped to actual entity fields (removed status)
-  const [rows, setRows] = useState([{
-    paymentMethod: '',
-    payeeName: '',
-    beneficiary: '',
-    payeeBank: '',
-    payeeBankBranch: '',
-    payeeBankAddress: '',
-    referenceNo: '',
-    amount: ''
-  }]);
-
-  // Page state
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // State for errors
-  const [errors, setErrors] = useState({
-    instruction: {},
-    rows: []
-  });
-
-  const [showDrafts, setShowDrafts] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // helper to load a draft back
-  const handleEditDraft = (draft) => {
-    if (!draft?.data) return;
-    setShowDrafts(false);
-    setInstructionDetails(draft.data.instructionDetails || instructionDetails);
-    setRows(draft.data.rows?.length ? draft.data.rows : rows);
-  };
-
-  //page calculations
-  const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
-  const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-  const endIndex = startIndex + ROWS_PER_PAGE;
-  const currentRows = rows.slice(startIndex, endIndex);
-  const canAddMore = rows.length < 100;
-
-  // Update instruction details
-  const updateInstructionDetails = (field, value) => {
-    setInstructionDetails(prev => ({ ...prev, [field]: value }));
-    
-    // Clear error when user updates field
-    if (errors.instruction[field]) {
-      setErrors(prev => ({
-        ...prev,
-        instruction: { ...prev.instruction, [field]: '' }
-      }));
-    }
-  };
-
-  // Update a row
-  const updateRow = (displayIndex, field, value) => {
-    const actualIndex = startIndex + displayIndex;
-    const newRows = [...rows];
-    newRows[actualIndex] = { ...newRows[actualIndex], [field]: value };
-    setRows(newRows);
-
-    // Clear error once field updates
-    if (errors.rows[actualIndex] && errors.rows[actualIndex][field]) {
-      const newErrors = [...errors.rows];
-      newErrors[actualIndex] = { ...newErrors[actualIndex], [field]: '' };
-      setErrors(prev => ({ ...prev, rows: newErrors }));
-    }
-  };
-
-  // Add new row (removed status)
-  const addRow = () => {
-    if (canAddMore) {
-      const newRow = {
-        paymentMethod: '',
-        payeeName: '',
-        beneficiary: '',
-        payeeBank: '',
-        payeeBankBranch: '',
-        payeeBankAddress: '',
-        referenceNo: '',
-        amount: ''
-      };
-      setRows([...rows, newRow]);
-
-      // Navigate to the page with the new row
-      const newTotalPages = Math.ceil((rows.length + 1) / ROWS_PER_PAGE);
-      setCurrentPage(newTotalPages);
-    }
-  };
-
-  // Remove row
-  const removeRow = (displayIndex) => {
-    if (rows.length > 1) {
-      const actualIndex = startIndex + displayIndex;
-      const newRows = rows.filter((_, index) => index !== actualIndex);
-      setRows(newRows);
-
-      const newErrorRows = errors.rows.filter((_, index) => index !== actualIndex);
-      setErrors(prev => ({ ...prev, rows: newErrorRows }));
-
-      // Adjust current page if necessary
-      const newTotalPages = Math.max(1, Math.ceil(newRows.length / ROWS_PER_PAGE));
-      if (currentPage > newTotalPages) {
-        setCurrentPage(newTotalPages);
-      }
-    }
-  };
-
-  // Handle page change
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-  };
-
-  // Validate form
-  const validateForm = () => {
-    const newErrors = { instruction: {}, rows: [] };
-
-    // Validate instruction details
-    if (!instructionDetails.currency) {
-      newErrors.instruction.currency = 'Currency is required';
-    }
-    if (!instructionDetails.debitAccount) {
-      newErrors.instruction.debitAccount = 'Debit account is required';
-    }
-    if (!instructionDetails.accountNo) {
-      newErrors.instruction.accountNo = 'Account number is required';
-    }
-    if (!instructionDetails.valueDate) {
-      newErrors.instruction.valueDate = 'Value date is required';
-    } else if (new Date(instructionDetails.valueDate) < new Date()) {
-      newErrors.instruction.valueDate = 'Value date must be today or later';
-    }
-    if (!instructionDetails.companyName) {
-      newErrors.instruction.companyName = 'Company name is required';
-    }
-
-    // Validate rows
-    rows.forEach((row, index) => {
-      const rowErrors = {};
-      if (!row.paymentMethod) rowErrors.paymentMethod = 'Required';
-      if (!row.payeeName) rowErrors.payeeName = 'Required';
-      if (!row.beneficiary) rowErrors.beneficiary = 'Required';
-      if (!row.payeeBank) rowErrors.payeeBank = 'Required';
-      if (!row.payeeBankBranch) rowErrors.payeeBankBranch = 'Required';
-      if (!row.payeeBankAddress) rowErrors.payeeBankAddress = 'Required';
-      if (!row.referenceNo) rowErrors.referenceNo = 'Required';
-      if (!row.amount) {
-        rowErrors.amount = 'Required';
-      } else if (parseFloat(row.amount) <= 0) {
-        rowErrors.amount = 'Amount must be positive';
-      }
-      newErrors.rows[index] = rowErrors;
-    });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors.instruction).length === 0 && 
-           newErrors.rows.every(rowError => Object.keys(rowError).length === 0);
-  };
-
-  // Save draft
-  const handleDraft = () => {
-    if (!validateForm()) {
-      // If validation fails, do not save draft
-      return;
-    }
-
-    const draft = {
-      id: Date.now().toString(),
-      name: instructionDetails.companyName || "Untitled Draft",
-      debitAccount: instructionDetails.debitAccount,
-      status: "draft",
-      currency: instructionDetails.currency,
-      totalAmount: rows.reduce((sum, row) => sum + Number(row.amount || 0), 0),
-      paymentCount: rows.length,
-      createdDate: new Date().toLocaleDateString(),
-      lastModified: new Date().toLocaleDateString(),
-      data: {
-        instructionDetails,
-        rows,
-      },
-    };
-
-    saveDraftToStorage(draft);
-    setShowDrafts(true); // Show the drafts screen
-  };
-
-  // Submit transaction - FIXED
-  const submitTransaction = async () => {
-    if (!validateForm()) {
-      alert("Please fix all validation errors before submitting.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Build transaction payload using data from first row
-      const transactionPayload = {
-        currency: instructionDetails.currency,
-        debitAccount: instructionDetails.debitAccount,
-        accountNo: instructionDetails.accountNo,
-        valueDate: instructionDetails.valueDate,
-        companyName: instructionDetails.companyName,
-        paymentMethod: rows[0].paymentMethod,
-        payeeName: rows[0].payeeName,
-        beneficiary: rows[0].beneficiary,
-        payeeBank: rows[0].payeeBank,
-        payeeBankBranch: rows[0].payeeBankBranch,
-        payeeBankAddress: rows[0].payeeBankAddress,
-        referenceNo: rows[0].referenceNo,
-        amount: rows[0].amount,
-        status: "PENDING"
-      };
-  
-      const response = await API.post("/api/transactions", transactionPayload);
-  
-      alert(`Transaction submitted successfully! ID: ${response.data.transactionId}`);
-  
-      // Reset form properly
-      setInstructionDetails({
-        currency: "",
-        debitAccount: "",
-        accountNo: "",
-        valueDate: new Date().toISOString().split("T")[0],
-        companyName: ""
-      });
-
-      setRows([{
-        paymentMethod: '',
-        payeeName: '',
-        beneficiary: '',
-        payeeBank: '',
-        payeeBankBranch: '',
-        payeeBankAddress: '',
-        referenceNo: '',
-        amount: ''
-      }]);
-
-      setCurrentPage(1);
-      setErrors({ instruction: {}, rows: [] });
-
-    } catch (error) {
-      console.error("Transaction submission failed:", error);
-      alert(`Failed to submit transaction: ${error.response?.data?.message || error.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Calculate current row errors for display
-  const currentRowErrors = currentRows.map((_, displayIndex) => {
-    const actualIndex = startIndex + displayIndex;
-    return errors.rows[actualIndex] || {};
-  });
-
-  return (
-    <div className="min-vh-100 bg-light">
-      {!showDrafts}
-      {showDrafts ? (
-        <DraftManagement
-          onEditDraft={handleEditDraft}
-          onBackToCreate={() => setShowDrafts(false)}
+      <td className="px-3 py-3 border-bottom">
+        <input
+          type="text"
+          className={`form-control form-control-sm ${rowErrors.paymentReference ? 'is-invalid' : ''}`}
+          value={row.paymentReference}
+          onChange={(e) => updateRow(rowIndex, 'paymentReference', e.target.value)}
+          placeholder={`Pay ${row.payeeDetails || 'Recipient'}`}
         />
-      ) : (
-        <div className="container-fluid px-4">
-          <div className="mb-4 mt-3">
-            <div className="d-flex justify-content-between align-items-center">
-              <h1 className="h2 fw-bold text-dark mb-0">
-                Create Payment Instructions
-              </h1>
-              <button
-                onClick={() => setShowDrafts(true)}
-                className="btn btn-outline-primary d-flex align-items-center"
-              >
-                <FileText className="me-2" size={18} />
-                View Drafts
-              </button>
-            </div>
-            <p className="text-muted mt-2 mb-0">
-              Set up your payment instructions with detailed beneficiary information
-            </p>
-          </div>
+        <ValidationMessage message={rowErrors.paymentReference} />
+      </td>
 
-          <div className="mb-4">
-            <InstructionDetails
-              instructionDetails={instructionDetails}
-              updateInstructionDetails={updateInstructionDetails}
-              errors={errors.instruction}
-            />
-          </div>
+      <td className="px-3 py-3 border-bottom">
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          className={`form-control form-control-sm ${rowErrors.amount ? 'is-invalid' : ''}`}
+          value={row.amount}
+          onChange={(e) => updateRow(rowIndex, 'amount', e.target.value)}
+          placeholder="0.00"
+        />
+        <ValidationMessage message={rowErrors.amount} />
+      </td>
 
-          <div className="mb-4">
-            <PaymentDetailsTable
-              rows={currentRows}
-              updateRow={updateRow}
-              addRow={addRow}
-              removeRow={removeRow}
-              errors={currentRowErrors}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-              canAddMore={canAddMore}
-            />
-          </div>
+      <td className="px-3 py-3 border-bottom">
+        <input
+          type="text"
+          className="form-control form-control-sm"
+          value={row.notesToPayee}
+          onChange={(e) => updateRow(rowIndex, 'notesToPayee', e.target.value)}
+          placeholder="Optional notes"
+        />
+      </td>
 
-          <div className="d-flex justify-content-end gap-3 mt-4">
-            <button
-              onClick={handleDraft}
-              className="btn btn-secondary d-inline-flex align-items-center px-4 py-2"
-              disabled={isSubmitting}
-            >
-              <Save className="me-2" style={{ width: '20px', height: '20px' }} />
-              Save Draft
-            </button>
-            <button
-              onClick={submitTransaction}
-              className="btn btn-success d-inline-flex align-items-center px-4 py-2"
-              disabled={isSubmitting}
-            >
-              <Send className="me-2" style={{ width: '20px', height: '20px' }} />
-              {isSubmitting ? 'Submitting...' : 'Submit Transaction'}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+      <td className="px-3 py-3 border-bottom">
+        <input
+          type="text"
+          className="form-control form-control-sm"
+          value={row.additionalNotes}
+          onChange={(e) => updateRow(rowIndex, 'additionalNotes', e.target.value)}
+          placeholder="Additional notes"
+        />
+      </td>
+
+      <td className="px-3 py-3 border-bottom">
+        <button
+          onClick={() => removeRow(rowIndex)}
+          className="btn btn-outline-danger btn-sm p-1"
+          title="Remove row"
+        >
+          <Trash2 style={{width: '16px', height: '16px'}} />
+        </button>
+      </td>
+    </tr>
   );
 };
 
-export default PaymentForm;
-
-export default InstructionDetails;
+export default PaymentRow;
