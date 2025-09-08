@@ -1078,3 +1078,55 @@ try {
 } finally {
   setIsSubmitting(false);
 }
+
+
+  try {
+    // Build transaction payload to match your entity
+    const transactionPayload = {
+      currency: instructionDetails.currency,
+      debitAccount: instructionDetails.debitAccount,
+      accountNo: instructionDetails.accountNo,
+      valueDate: instructionDetails.valueDate,
+      companyName: instructionDetails.companyName,
+      batchId: instructionDetails.batchId,
+      paymentMethod: instructionDetails.paymentMethod,
+      payeeName: instructionDetails.payeeName,
+      beneficiary: instructionDetails.beneficiary,
+      payeeBank: instructionDetails.payeeBank,
+      payeeBankBranch: instructionDetails.payeeBankBranch,
+      payeeBankAddress: instructionDetails.payeeBankAddress,
+      referenceNo: instructionDetails.referenceNo,
+      amount: instructionDetails.amount,
+      status: instructionDetails.status || "PENDING",
+    };
+
+    // Send POST request
+    const response = await api.post("/transactions", transactionPayload);
+
+    alert(`✅ Transaction submitted successfully! ID: ${response.data.transactionId}`);
+
+    // Reset form after success
+    setInstructionDetails({
+      currency: "",
+      debitAccount: "",
+      accountNo: "",
+      valueDate: new Date().toISOString().split("T")[0],
+      companyName: "",
+      batchId: "",
+      paymentMethod: "",
+      payeeName: "",
+      beneficiary: "",
+      payeeBank: "",
+      payeeBankBranch: "",
+      payeeBankAddress: "",
+      referenceNo: "",
+      amount: "",
+      status: "PENDING",
+    });
+  } catch (error) {
+    console.error("Transaction submission failed:", error);
+    alert(`❌ Failed to submit transaction: ${error.response?.data?.message || error.message}`);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
