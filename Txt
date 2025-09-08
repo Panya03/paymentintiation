@@ -47,5 +47,19 @@ public class TransactionService {
 
     public void deleteTransaction(Integer id) {
         transactionRepo.deleteById(id);
+
+
+
+{
+  "accountNo": "1234",
+  "debitAccountNo": "5678",
+  "beneficiary": "abc",
+  "amount": "1000",
+  "companyName": "XYZ Corp",
+  "status": "PENDING",
+  "paymentMethod": "NEFT",
+  "referenceNo": "REF001"
+}
+
     }
 }
