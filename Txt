@@ -1,14 +1,169 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
-import PaymentRow from './PaymentRow';
-
-import DownloadTemplateButton from './DownloadTemplateButton';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// Payment Details Table Component
+import { Trash2 } from 'lucide-react';
+import DownloadTemplateButton from './DownloadTemplateButton';
 
+// PaymentRow Component - handles individual row rendering
+const PaymentRow = ({ row, rowIndex, updateRow, removeRow, errors, isOdd }) => {
+  const handleInputChange = (field, value) => {
+    updateRow(rowIndex, field, value);
+  };
 
-const PaymentDetailsTable = ({ rows=[], updateRow, addRow, removeRow, errors, currentPage, totalPages, onPageChange, canAddMore }) => {
+  return (
+    <tr className={isOdd ? 'bg-light' : ''}>
+      {/* Account No */}
+      <td className="px-3 py-3">
+        <input
+          type="text"
+          className={`form-control ${errors.accountNo ? 'is-invalid' : ''}`}
+          value={row.accountNo || ''}
+          onChange={(e) => handleInputChange('accountNo', e.target.value)}
+          placeholder="Account number"
+        />
+        {errors.accountNo && (
+          <div className="invalid-feedback">{errors.accountNo}</div>
+        )}
+      </td>
+
+      {/* Reference No */}
+      <td className="px-3 py-3">
+        <input
+          type="number"
+          className={`form-control ${errors.referenceNo ? 'is-invalid' : ''}`}
+          value={row.referenceNo || ''}
+          onChange={(e) => handleInputChange('referenceNo', e.target.value)}
+          placeholder="Reference number"
+        />
+        {errors.referenceNo && (
+          <div className="invalid-feedback">{errors.referenceNo}</div>
+        )}
+      </td>
+
+      {/* Beneficiary */}
+      <td className="px-3 py-3">
+        <input
+          type="text"
+          className={`form-control ${errors.beneficiary ? 'is-invalid' : ''}`}
+          value={row.beneficiary || ''}
+          onChange={(e) => handleInputChange('beneficiary', e.target.value)}
+          placeholder="Beneficiary name"
+        />
+        {errors.beneficiary && (
+          <div className="invalid-feedback">{errors.beneficiary}</div>
+        )}
+      </td>
+
+      {/* Amount */}
+      <td className="px-3 py-3">
+        <input
+          type="number"
+          step="0.01"
+          className={`form-control ${errors.amount ? 'is-invalid' : ''}`}
+          value={row.amount || ''}
+          onChange={(e) => handleInputChange('amount', e.target.value)}
+          placeholder="0.00"
+        />
+        {errors.amount && (
+          <div className="invalid-feedback">{errors.amount}</div>
+        )}
+      </td>
+
+      {/* Payment Method */}
+      <td className="px-3 py-3">
+        <select
+          className={`form-select ${errors.paymentMethod ? 'is-invalid' : ''}`}
+          value={row.paymentMethod || ''}
+          onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+        >
+          <option value="">Select method</option>
+          <option value="WIRE">Wire Transfer</option>
+          <option value="ACH">ACH</option>
+          <option value="CHECK">Check</option>
+          <option value="RTGS">RTGS</option>
+          <option value="NEFT">NEFT</option>
+        </select>
+        {errors.paymentMethod && (
+          <div className="invalid-feedback">{errors.paymentMethod}</div>
+        )}
+      </td>
+
+      {/* Payee Name */}
+      <td className="px-3 py-3">
+        <input
+          type="text"
+          className={`form-control ${errors.payeeName ? 'is-invalid' : ''}`}
+          value={row.payeeName || ''}
+          onChange={(e) => handleInputChange('payeeName', e.target.value)}
+          placeholder="Payee name"
+        />
+        {errors.payeeName && (
+          <div className="invalid-feedback">{errors.payeeName}</div>
+        )}
+      </td>
+
+      {/* Payee Bank */}
+      <td className="px-3 py-3">
+        <input
+          type="text"
+          className={`form-control ${errors.payeeBank ? 'is-invalid' : ''}`}
+          value={row.payeeBank || ''}
+          onChange={(e) => handleInputChange('payeeBank', e.target.value)}
+          placeholder="Bank name"
+        />
+        {errors.payeeBank && (
+          <div className="invalid-feedback">{errors.payeeBank}</div>
+        )}
+      </td>
+
+      {/* Bank Branch */}
+      <td className="px-3 py-3">
+        <input
+          type="text"
+          className={`form-control ${errors.payeeBankBranch ? 'is-invalid' : ''}`}
+          value={row.payeeBankBranch || ''}
+          onChange={(e) => handleInputChange('payeeBankBranch', e.target.value)}
+          placeholder="Branch name"
+        />
+        {errors.payeeBankBranch && (
+          <div className="invalid-feedback">{errors.payeeBankBranch}</div>
+        )}
+      </td>
+
+      {/* Bank Address */}
+      <td className="px-3 py-3">
+        <textarea
+          className={`form-control ${errors.payeeBankAddress ? 'is-invalid' : ''}`}
+          value={row.payeeBankAddress || ''}
+          onChange={(e) => handleInputChange('payeeBankAddress', e.target.value)}
+          placeholder="Bank address"
+          rows="2"
+          style={{ minHeight: '38px', resize: 'vertical' }}
+        />
+        {errors.payeeBankAddress && (
+          <div className="invalid-feedback">{errors.payeeBankAddress}</div>
+        )}
+      </td>
+
+      {/* Actions */}
+      <td className="px-3 py-3">
+        <button
+          type="button"
+          onClick={() => removeRow(rowIndex)}
+          className="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center"
+          style={{ width: '38px', height: '38px' }}
+          title="Remove row"
+        >
+          <Trash2 size={16} />
+        </button>
+      </td>
+    </tr>
+  );
+};
+
+// Main PaymentDetailsTable Component
+const PaymentDetailsTable = ({ rows=[], updateRow, addRow, removeRow, errors=[], currentPage, totalPages, onPageChange, canAddMore }) => {
 
   const [hover, setHover] = useState(false);
   const navigate = useNavigate();
@@ -55,34 +210,34 @@ const PaymentDetailsTable = ({ rows=[], updateRow, addRow, removeRow, errors, cu
         <table className="table mb-0">
           <thead className="table-light">
             <tr>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '150px'}}>
                 Account No
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '120px'}}>
                 Reference No
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '150px'}}>
                 Beneficiary
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '120px'}}>
                 Amount
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '140px'}}>
                 Payment Method
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '150px'}}>
                 Payee Name
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '150px'}}>
                 Payee Bank
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '120px'}}>
                 Bank Branch
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '180px'}}>
                 Bank Address
               </th>
-              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom">
+              <th className="px-3 py-3 text-start small text-uppercase fw-medium text-muted border-bottom" style={{minWidth: '80px'}}>
                 Actions
               </th>
             </tr>
@@ -95,7 +250,7 @@ const PaymentDetailsTable = ({ rows=[], updateRow, addRow, removeRow, errors, cu
                 rowIndex={index}
                 updateRow={updateRow}
                 removeRow={removeRow}
-                errors={errors}
+                errors={errors[index] || {}}
                 isOdd={index % 2 === 1}
               />
             ))}
