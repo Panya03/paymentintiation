@@ -1001,3 +1001,80 @@ const PaymentForm = () => {
 };
 
 export default PaymentForm;
+
+
+import api from "../api"; // adjust path if needed
+
+// inside your submit function
+try {
+  // create an array of POST requests (if multiple transactions in rows)
+  const transactionPromises = rows.map((row) => {
+    const transactionPayload = {
+      currency: instructionDetails.currency,
+      debitAccount: instructionDetails.debitAccount,
+      accountNo: instructionDetails.accountNo,
+      valueDate: instructionDetails.valueDate,
+      companyName: instructionDetails.companyName,
+      batchId: instructionDetails.batchId,
+      paymentMethod: row.paymentMethod,
+      payeeName: row.payeeName,
+      beneficiary: row.beneficiary,
+      payeeBank: row.payeeBank,
+      payeeBankBranch: row.payeeBankBranch,
+      payeeBankAddress: row.payeeBankAddress,
+      referenceNo: row.referenceNo,
+      amount: row.amount,
+      status: row.status || "PENDING",
+    };
+
+    // axios call instead of fetch
+    return api.post("/transactions", transactionPayload);
+  });
+
+  const responses = await Promise.all(transactionPromises);
+
+  // each axios response has .data
+  const results = responses.map((res) => res.data);
+
+  alert(
+    `${results.length} transaction(s) submitted successfully! Transaction IDs: ${results
+      .map((r) => r.transactionId)
+      .join(", ")}`
+  );
+
+  // Reset form
+  setInstructionDetails({
+    currency: "",
+    debitAccount: "",
+    accountNo: "",
+    valueDate: new Date().toISOString().split("T")[0],
+    companyName: "",
+    batchId: "",
+  });
+
+  setRows([
+    {
+      paymentMethod: "",
+      payeeName: "",
+      beneficiary: "",
+      payeeBank: "",
+      payeeBankBranch: "",
+      payeeBankAddress: "",
+      referenceNo: "",
+      amount: "",
+      status: "PENDING",
+    },
+  ]);
+
+  setCurrentPage(1);
+  setErrors({ instruction: {}, rows: [] });
+} catch (error) {
+  console.error("Transaction submission failed:", error);
+  alert(
+    `Failed to submit transaction: ${
+      error.response?.data?.message || error.message
+    }`
+  );
+} finally {
+  setIsSubmitting(false);
+}
