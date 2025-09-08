@@ -1,3 +1,99 @@
+import React from 'react';
+import ValidationMessage from './ValidationMessage';
+
+// Instruction Details Component
+const InstructionDetails = ({ instructionDetails, updateInstructionDetails, errors }) => {
+  const currencies = ['', 'USD', 'EUR', 'GBP', 'SGD', 'HKD', 'JPY'];
+  const debitAccounts = ['', '1234567890 - USD Operating Account', '0987654321 - EUR Business Account', '1122334455 - GBP Current Account'];
+
+  return (
+    <div className="card shadow-sm mb-4">
+      <div className="card-body">
+        <h3 className="h5 fw-semibold text-dark mb-4">Instruction Details</h3>
+        <div className="row g-3">
+          <div className="col-md-4">
+            <label className="form-label fw-medium text-dark mb-1">
+              Payment Currency *
+            </label>
+            <select
+              className={`form-select ${errors.currency ? 'is-invalid' : ''}`}
+              value={instructionDetails.currency}
+              onChange={(e) => updateInstructionDetails('currency', e.target.value)}
+            >
+              {currencies.map((currency, index) => (
+                <option key={index} value={currency}>
+                  {currency || 'Select Currency'}
+                </option>
+              ))}
+            </select>
+            <ValidationMessage message={errors.currency} />
+          </div>
+
+          <div className="col-md-4">
+            <label className="form-label fw-medium text-dark mb-1">
+              Debit Account *
+            </label>
+            <select
+              className={`form-select ${errors.debitAccount ? 'is-invalid' : ''}`}
+              value={instructionDetails.debitAccount}
+              onChange={(e) => updateInstructionDetails('debitAccount', e.target.value)}
+            >
+              {debitAccounts.map((account, index) => (
+                <option key={index} value={account}>
+                  {account || 'Choose a debit account'}
+                </option>
+              ))}
+            </select>
+            <ValidationMessage message={errors.debitAccount} />
+          </div>
+
+          <div className="col-md-4">
+            <label className="form-label fw-medium text-dark mb-1">
+              Value Date *
+            </label>
+            <input
+              type="date"
+              className={`form-control ${errors.valueDate ? 'is-invalid' : ''}`}
+              value={instructionDetails.valueDate}
+              onChange={(e) => updateInstructionDetails('valueDate', e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+            />
+            <ValidationMessage message={errors.valueDate} />
+          </div>
+
+          <div className="col-md-6">
+            <label className="form-label fw-medium text-dark mb-1">
+              Account Number *
+            </label>
+            <input
+              type="text"
+              className={`form-control ${errors.accountNo ? 'is-invalid' : ''}`}
+              value={instructionDetails.accountNo || ''}
+              onChange={(e) => updateInstructionDetails('accountNo', e.target.value)}
+              placeholder="Enter account number"
+            />
+            <ValidationMessage message={errors.accountNo} />
+          </div>
+
+          <div className="col-md-6">
+            <label className="form-label fw-medium text-dark mb-1">
+              Company Name *
+            </label>
+            <input
+              type="text"
+              className={`form-control ${errors.companyName ? 'is-invalid' : ''}`}
+              value={instructionDetails.companyName || ''}
+              onChange={(e) => updateInstructionDetails('companyName', e.target.value)}
+              placeholder="Enter company name"
+            />
+            <ValidationMessage message={errors.companyName} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 import React, { useEffect, useState } from 'react';
 import { Save, Send, FileText} from 'lucide-react';
 import InstructionDetails from './InstructionDetails';
@@ -21,7 +117,7 @@ const PaymentForm = () => {
    
   });
 
-  // payment rows - mapped to actual entity fields
+  // payment rows - mapped to actual entity fields (removed status)
   const [rows, setRows] = useState([{
     paymentMethod: '',
     payeeName: '',
@@ -30,8 +126,7 @@ const PaymentForm = () => {
     payeeBankBranch: '',
     payeeBankAddress: '',
     referenceNo: '',
-    amount: '',
-    status: 'PENDING'
+    amount: ''
   }]);
 
   // Page state
@@ -89,7 +184,7 @@ const PaymentForm = () => {
     }
   };
 
-  // Add new row
+  // Add new row (removed status)
   const addRow = () => {
     if (canAddMore) {
       const newRow = {
@@ -100,8 +195,7 @@ const PaymentForm = () => {
         payeeBankBranch: '',
         payeeBankAddress: '',
         referenceNo: '',
-        amount: '',
-        status: 'PENDING'
+        amount: ''
       };
       setRows([...rows, newRow]);
 
@@ -156,8 +250,6 @@ const PaymentForm = () => {
     if (!instructionDetails.companyName) {
       newErrors.instruction.companyName = 'Company name is required';
     }
-  
-    
 
     // Validate rows
     rows.forEach((row, index) => {
@@ -209,7 +301,7 @@ const PaymentForm = () => {
     setShowDrafts(true); // Show the drafts screen
   };
 
-  // Submit transaction
+  // Submit transaction - FIXED
   const submitTransaction = async () => {
     if (!validateForm()) {
       alert("Please fix all validation errors before submitting.");
@@ -219,48 +311,51 @@ const PaymentForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Build transaction payload to match your entity
+      // Build transaction payload using data from first row
       const transactionPayload = {
         currency: instructionDetails.currency,
         debitAccount: instructionDetails.debitAccount,
         accountNo: instructionDetails.accountNo,
         valueDate: instructionDetails.valueDate,
         companyName: instructionDetails.companyName,
-        batchId: instructionDetails.batchId,
-        paymentMethod: instructionDetails.paymentMethod,
-        payeeName: instructionDetails.payeeName,
-        beneficiary: instructionDetails.beneficiary,
-        payeeBank: instructionDetails.payeeBank,
-        payeeBankBranch: instructionDetails.payeeBankBranch,
-        payeeBankAddress: instructionDetails.payeeBankAddress,
-        referenceNo: instructionDetails.referenceNo,
-        amount: instructionDetails.amount,
-        status: instructionDetails.status || "PENDING",
+        paymentMethod: rows[0].paymentMethod,
+        payeeName: rows[0].payeeName,
+        beneficiary: rows[0].beneficiary,
+        payeeBank: rows[0].payeeBank,
+        payeeBankBranch: rows[0].payeeBankBranch,
+        payeeBankAddress: rows[0].payeeBankAddress,
+        referenceNo: rows[0].referenceNo,
+        amount: rows[0].amount,
+        status: "PENDING"
       };
   
-      
       const response = await API.post("/api/transactions", transactionPayload);
   
       alert(`Transaction submitted successfully! ID: ${response.data.transactionId}`);
   
-    
+      // Reset form properly
       setInstructionDetails({
         currency: "",
         debitAccount: "",
         accountNo: "",
         valueDate: new Date().toISOString().split("T")[0],
-        companyName: "",
-        batchId: "",
-        paymentMethod: "",
-        payeeName: "",
-        beneficiary: "",
-        payeeBank: "",
-        payeeBankBranch: "",
-        payeeBankAddress: "",
-        referenceNo: "",
-        amount: "",
-        status: "PENDING",
+        companyName: ""
       });
+
+      setRows([{
+        paymentMethod: '',
+        payeeName: '',
+        beneficiary: '',
+        payeeBank: '',
+        payeeBankBranch: '',
+        payeeBankAddress: '',
+        referenceNo: '',
+        amount: ''
+      }]);
+
+      setCurrentPage(1);
+      setErrors({ instruction: {}, rows: [] });
+
     } catch (error) {
       console.error("Transaction submission failed:", error);
       alert(`Failed to submit transaction: ${error.response?.data?.message || error.message}`);
@@ -350,3 +445,5 @@ const PaymentForm = () => {
 };
 
 export default PaymentForm;
+
+export default InstructionDetails;
