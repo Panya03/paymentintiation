@@ -280,7 +280,7 @@ const PaymentForm = () => {
           });
 
         } else {
-          // Multiple transactions - create batch
+          // Multiple transactions - create batch (backend will handle storage logic)
           const totalAmount = group.transactions.reduce((sum, transaction) => 
             sum + parseFloat(transaction.amount || 0), 0
           );
@@ -310,6 +310,7 @@ const PaymentForm = () => {
             }))
           };
 
+          // Backend will store only in batches table, not in transactions table
           const batchResponse = await API.post("/api/batches/create", batchPayload);
           results.push({
             type: 'batch',
@@ -323,11 +324,11 @@ const PaymentForm = () => {
       const batches = results.filter(r => r.type === 'batch');
       const transactions = results.filter(r => r.type === 'transaction');
       
-      let message = "Successfully submitted:\n";
+      let message = "Transaction(s) submitted successfully!\n";
       if (batches.length > 0) {
         const batchIds = batches.map(b => b.id).join(', ');
         const totalBatchTransactions = batches.reduce((sum, b) => sum + b.count, 0);
-        message += `${batches.length} batch(es) with ${totalBatchTransactions} transactions (Batch IDs: ${batchIds})\n`;
+        message += `${totalBatchTransactions} transactions stored in ${batches.length} batch(es) (Batch IDs: ${batchIds})\n`;
       }
       if (transactions.length > 0) {
         const transactionIds = transactions.map(t => t.id).join(', ');
@@ -360,8 +361,8 @@ const PaymentForm = () => {
       setErrors({ instruction: {}, rows: [] });
 
     } catch (error) {
-      console.error("Transaction/Batch submission failed:", error);
-      alert(`Failed to submit: ${error.response?.data?.message || error.message}`);
+      console.error("Transaction submission failed:", error);
+      alert(`Failed to submit transaction: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsSubmitting(false);
     }
