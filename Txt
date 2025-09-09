@@ -235,14 +235,106 @@ const PaymentForm = () => {
     return groups;
   };
 
+  // Submit transaction with conditional batching functionality
+  const submitTransaction = async () => {
+    if (!validateForm()) {
+      alert("Please fix all validation errors before submitting.");
+      return;
+    }
 
+    setIsSubmitting(true);
 
-      // Show success message with batch information
-      const batchIds = createdBatches.map(batch => batch.batchId).join(', ');
-      const totalTransactions = rows.length;
-      const totalBatches = createdBatches.length;
+    try {
+      // Group transactions by date and currency
+      const transactionGroups = groupTransactionsByDateAndCurrency(rows, instructionDetails);
       
-      alert(`Successfully created ${totalBatches} batch(es) with ${totalTransactions} transaction(s)!\nBatch ID(s): ${batchIds}`);
+      const results = [];
+      
+      // Process each group
+      for (const [groupKey, group] of Object.entries(transactionGroups)) {
+        if (group.transactions.length === 1) {
+          // Single transaction - send as individual transaction
+          const transaction = group.transactions[0];
+          const transactionPayload = {
+            currency: instructionDetails.currency,
+            debitAccount: instructionDetails.debitAccount,
+            accountNo: instructionDetails.accountNo,
+            valueDate: instructionDetails.valueDate,
+            companyName: instructionDetails.companyName,
+            paymentMethod: transaction.paymentMethod,
+            payeeName: transaction.payeeName,
+            beneficiary: transaction.beneficiary,
+            payeeBank: transaction.payeeBank,
+            payeeBankBranch: transaction.payeeBankBranch,
+            payeeBankAddress: transaction.payeeBankAddress,
+            referenceNo: transaction.referenceNo,
+            amount: transaction.amount,
+            status: "PENDING"
+          };
+
+          const response = await API.post("/api/transactions", transactionPayload);
+          results.push({
+            type: 'transaction',
+            id: response.data.transactionId,
+            count: 1
+          });
+
+        } else {
+          // Multiple transactions - create batch
+          const totalAmount = group.transactions.reduce((sum, transaction) => 
+            sum + parseFloat(transaction.amount || 0), 0
+          );
+          
+          const batchPayload = {
+            createdBy: { id: 1 }, // You might want to get this from user context
+            sourceAccId: instructionDetails.debitAccount,
+            batchName: `${instructionDetails.companyName}_${group.valueDate}_${group.currency}`,
+            totAmt: totalAmount,
+            currency: group.currency,
+            status: "PENDING",
+            isDraft: false,
+            totDebitAmt: totalAmount,
+            comments: `Batch created for ${instructionDetails.companyName} - ${group.valueDate}`,
+            numOfPayments: group.transactions.length,
+            yourRef: instructionDetails.accountNo,
+            paymentRef: `PAY_${Date.now()}_${groupKey}`,
+            transactions: group.transactions.map(transaction => ({
+              paymentMethod: transaction.paymentMethod,
+              payeeName: transaction.payeeName,
+              beneficiary: transaction.beneficiary,
+              payeeBank: transaction.payeeBank,
+              payeeBankBranch: transaction.payeeBankBranch,
+              payeeBankAddress: transaction.payeeBankAddress,
+              referenceNo: transaction.referenceNo,
+              amount: transaction.amount
+            }))
+          };
+
+          const batchResponse = await API.post("/api/batches/create", batchPayload);
+          results.push({
+            type: 'batch',
+            id: batchResponse.data.batchId,
+            count: group.transactions.length
+          });
+        }
+      }
+
+      // Show success message
+      const batches = results.filter(r => r.type === 'batch');
+      const transactions = results.filter(r => r.type === 'transaction');
+      
+      let message = "Successfully submitted:\n";
+      if (batches.length > 0) {
+        const batchIds = batches.map(b => b.id).join(', ');
+        const totalBatchTransactions = batches.reduce((sum, b) => sum + b.count, 0);
+        message += `${batches.length} batch(es) with ${totalBatchTransactions} transactions (Batch IDs: ${batchIds})\n`;
+      }
+      if (transactions.length > 0) {
+        const transactionIds = transactions.map(t => t.id).join(', ');
+        message += `${transactions.length} individual transaction(s) (Transaction IDs: ${transactionIds})`;
+      }
+      
+      alert(message);
 
       // Reset form properly
       setInstructionDetails({
@@ -268,8 +360,8 @@ const PaymentForm = () => {
       setErrors({ instruction: {}, rows: [] });
 
     } catch (error) {
-      console.error("Batch/Transaction submission failed:", error);
-      alert(`Failed to submit batch/transactions: ${error.response?.data?.message || error.message}`);
+      console.error("Transaction/Batch submission failed:", error);
+      alert(`Failed to submit: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -283,7 +375,6 @@ const PaymentForm = () => {
 
   return (
     <div className="min-vh-100 bg-light">
-      {!showDrafts}
       {showDrafts ? (
         <DraftManagement
           onEditDraft={handleEditDraft}
