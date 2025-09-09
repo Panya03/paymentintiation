@@ -291,7 +291,6 @@ const PaymentForm = () => {
             batchName: `${instructionDetails.companyName}_${group.valueDate}_${group.currency}`,
             totAmt: totalAmount,
             currency: group.currency,
-            status: "PENDING",
             isDraft: false,
             totDebitAmt: totalAmount,
             comments: `Batch created for ${instructionDetails.companyName} - ${group.valueDate}`,
