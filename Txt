@@ -447,3 +447,15 @@ const PaymentForm = () => {
 };
 
 export default PaymentForm;
+
+
+const totalAmount = group.transactions.reduce((sum, transaction) => {
+  const amount = parseFloat(transaction.amount) || 0;
+  return sum + amount;
+}, 0);
+
+console.log('Calculating total amount:', group.transactions.map(t => ({ 
+  original: t.amount, 
+  parsed: parseFloat(t.amount) || 0 
+})));
+console.log('Total amount calculated:', totalAmount);
