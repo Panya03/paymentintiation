@@ -1,332 +1,370 @@
-package com.scb.Payment.Initiation.entity;
+import React, { useEffect, useState } from 'react';
+import { Save, Send, FileText} from 'lucide-react';
+import InstructionDetails from './InstructionDetails';
+import PaymentDetailsTable from './PaymentDetailsTable';
+import DraftManagement from './DraftManagement';
+import { saveDraftToStorage } from '../utils/draftUtils';
+import "bootstrap/dist/css/bootstrap.min.css";
+import API from "../axiosInstance";
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.persistence.*;
-import org.springframework.security.core.userdetails.User;
+// page component
+const PaymentForm = () => {
+  const ROWS_PER_PAGE = 10;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+  // instruction details - mapped to actual entity fields
+  const [instructionDetails, setInstructionDetails] = useState({
+    currency: '',
+    debitAccount: '',
+    accountNo: '',
+    valueDate: new Date().toISOString().split('T')[0],
+    companyName: '',
+   
+  });
 
-@Entity
-@Table(name = "batches")
-public class Batch {
+  // payment rows - mapped to actual entity fields (removed status)
+  const [rows, setRows] = useState([{
+    paymentMethod: '',
+    payeeName: '',
+    beneficiary: '',
+    payeeBank: '',
+    payeeBankBranch: '',
+    payeeBankAddress: '',
+    referenceNo: '',
+    amount: ''
+  }]);
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "batch_id")
-    private Long batchId;
+  // Page state
+  const [currentPage, setCurrentPage] = useState(1);
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by",nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
-    private Users createdBy;
+  // State for errors
+  const [errors, setErrors] = useState({
+    instruction: {},
+    rows: []
+  });
 
-    @Column(name = "source_acc_id")
-    private String sourceAccId;
+  const [showDrafts, setShowDrafts] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    @Column(name = "batch_name")
-    private String batchName;
+  // helper to load a draft back
+  const handleEditDraft = (draft) => {
+    if (!draft?.data) return;
+    setShowDrafts(false);
+    setInstructionDetails(draft.data.instructionDetails || instructionDetails);
+    setRows(draft.data.rows?.length ? draft.data.rows : rows);
+  };
 
-    @Column(name = "tot_amt")
-    private Double totAmt;
+  //page calculations
+  const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+  const endIndex = startIndex + ROWS_PER_PAGE;
+  const currentRows = rows.slice(startIndex, endIndex);
+  const canAddMore = rows.length < 100;
 
-    @Column(name = "currency")
-    private String currency;
+  // Update instruction details
+  const updateInstructionDetails = (field, value) => {
+    setInstructionDetails(prev => ({ ...prev, [field]: value }));
+    
+    // Clear error when user updates field
+    if (errors.instruction[field]) {
+      setErrors(prev => ({
+        ...prev,
+        instruction: { ...prev.instruction, [field]: '' }
+      }));
+    }
+  };
 
-    @Column(name = "status")
-    private String status;
+  // Update a row
+  const updateRow = (displayIndex, field, value) => {
+    const actualIndex = startIndex + displayIndex;
+    const newRows = [...rows];
+    newRows[actualIndex] = { ...newRows[actualIndex], [field]: value };
+    setRows(newRows);
 
-    @Column(name = "is_draft")
-    private Boolean isDraft;
+    // Clear error once field updates
+    if (errors.rows[actualIndex] && errors.rows[actualIndex][field]) {
+      const newErrors = [...errors.rows];
+      newErrors[actualIndex] = { ...newErrors[actualIndex], [field]: '' };
+      setErrors(prev => ({ ...prev, rows: newErrors }));
+    }
+  };
 
+  // Add new row (removed status)
+  const addRow = () => {
+    if (canAddMore) {
+      const newRow = {
+        paymentMethod: '',
+        payeeName: '',
+        beneficiary: '',
+        payeeBank: '',
+        payeeBankBranch: '',
+        payeeBankAddress: '',
+        referenceNo: '',
+        amount: ''
+      };
+      setRows([...rows, newRow]);
 
-    @Column(name = "tot_debit_amt")
-    private Double totDebitAmt;
+      // Navigate to the page with the new row
+      const newTotalPages = Math.ceil((rows.length + 1) / ROWS_PER_PAGE);
+      setCurrentPage(newTotalPages);
+    }
+  };
 
-    @Column(name = "comments")
-    private String comments;
+  // Remove row
+  const removeRow = (displayIndex) => {
+    if (rows.length > 1) {
+      const actualIndex = startIndex + displayIndex;
+      const newRows = rows.filter((_, index) => index !== actualIndex);
+      setRows(newRows);
 
-    @Column(name = "num_of_payments")
-    private Integer numOfPayments;
+      const newErrorRows = errors.rows.filter((_, index) => index !== actualIndex);
+      setErrors(prev => ({ ...prev, rows: newErrorRows }));
 
-    @Column(name = "your_ref")
-    private String yourRef;
+      // Adjust current page if necessary
+      const newTotalPages = Math.max(1, Math.ceil(newRows.length / ROWS_PER_PAGE));
+      if (currentPage > newTotalPages) {
+        setCurrentPage(newTotalPages);
+      }
+    }
+  };
 
-    @Column(name = "payment_ref")
-    private String paymentRef;
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
 
-    // Constructors
-    public Batch() {}
+  // Validate form
+  const validateForm = () => {
+    const newErrors = { instruction: {}, rows: [] };
 
-    public Batch(Long batchId, Users createdBy, String sourceAccId, String batchName, Double totAmt, String currency, String status, Boolean isDraft, Double totDebitAmt, String comments, Integer numOfPayments, String yourRef, String paymentRef) {
-        this.batchId = batchId;
-        this.createdBy = createdBy;
-        this.sourceAccId = sourceAccId;
-        this.batchName = batchName;
-        this.totAmt = totAmt;
-        this.currency = currency;
-        this.status = status;
-        this.isDraft = isDraft;
-        this.totDebitAmt = totDebitAmt;
-        this.comments = comments;
-        this.numOfPayments = numOfPayments;
-        this.yourRef = yourRef;
-        this.paymentRef = paymentRef;
+    // Validate instruction details
+    if (!instructionDetails.currency) {
+      newErrors.instruction.currency = 'Currency is required';
+    }
+    if (!instructionDetails.debitAccount) {
+      newErrors.instruction.debitAccount = 'Debit account is required';
+    }
+    if (!instructionDetails.accountNo) {
+      newErrors.instruction.accountNo = 'Account number is required';
+    }
+    if (!instructionDetails.valueDate) {
+      newErrors.instruction.valueDate = 'Value date is required';
+    } else if (new Date(instructionDetails.valueDate) < new Date()) {
+      newErrors.instruction.valueDate = 'Value date must be today or later';
+    }
+    if (!instructionDetails.companyName) {
+      newErrors.instruction.companyName = 'Company name is required';
     }
 
-    public Long getBatchId() {
-        return batchId;
+    // Validate rows
+    rows.forEach((row, index) => {
+      const rowErrors = {};
+      if (!row.paymentMethod) rowErrors.paymentMethod = 'Required';
+      if (!row.payeeName) rowErrors.payeeName = 'Required';
+      if (!row.beneficiary) rowErrors.beneficiary = 'Required';
+      if (!row.payeeBank) rowErrors.payeeBank = 'Required';
+      if (!row.payeeBankBranch) rowErrors.payeeBankBranch = 'Required';
+      if (!row.payeeBankAddress) rowErrors.payeeBankAddress = 'Required';
+      if (!row.referenceNo) rowErrors.referenceNo = 'Required';
+      if (!row.amount) {
+        rowErrors.amount = 'Required';
+      } else if (parseFloat(row.amount) <= 0) {
+        rowErrors.amount = 'Amount must be positive';
+      }
+      newErrors.rows[index] = rowErrors;
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors.instruction).length === 0 && 
+           newErrors.rows.every(rowError => Object.keys(rowError).length === 0);
+  };
+
+  // Save draft
+  const handleDraft = () => {
+    if (!validateForm()) {
+      // If validation fails, do not save draft
+      return;
     }
 
-    public void setBatchId(Long batchId) {
-        this.batchId = batchId;
-    }
+    const draft = {
+      id: Date.now().toString(),
+      name: instructionDetails.companyName || "Untitled Draft",
+      debitAccount: instructionDetails.debitAccount,
+      status: "draft",
+      currency: instructionDetails.currency,
+      totalAmount: rows.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+      paymentCount: rows.length,
+      createdDate: new Date().toLocaleDateString(),
+      lastModified: new Date().toLocaleDateString(),
+      data: {
+        instructionDetails,
+        rows,
+      },
+    };
 
-    public Users getCreatedBy() {
-        return createdBy;
-    }
+    saveDraftToStorage(draft);
+    setShowDrafts(true); // Show the drafts screen
+  };
 
-    public void setCreatedBy(Users createdBy) {
-        this.createdBy = createdBy;
-    }
+  // Helper function to group transactions by value date and currency
+  const groupTransactionsByDateAndCurrency = (transactions, instructionDetails) => {
+    const groups = {};
+    
+    transactions.forEach((transaction, index) => {
+      // Use the instruction's valueDate for all transactions in this batch
+      const key = `${instructionDetails.valueDate}_${instructionDetails.currency}`;
+      
+      if (!groups[key]) {
+        groups[key] = {
+          valueDate: instructionDetails.valueDate,
+          currency: instructionDetails.currency,
+          transactions: []
+        };
+      }
+      
+      groups[key].transactions.push({
+        ...transaction,
+        // Add any additional fields needed for the transaction
+        valueDate: instructionDetails.valueDate,
+        currency: instructionDetails.currency,
+        debitAccount: instructionDetails.debitAccount,
+        accountNo: instructionDetails.accountNo,
+        companyName: instructionDetails.companyName
+      });
+    });
+    
+    return groups;
+  };
 
-    public String getSourceAccId() {
-        return sourceAccId;
-    }
+iciary: transaction.beneficiary,
+            payeeBank: transaction.payeeBank,
+            payeeBankBranch: transaction.payeeBankBranch,
+            payeeBankAddress: transaction.payeeBankAddress,
+            referenceNo: transaction.referenceNo,
+            amount: transaction.amount,
+            status: "PENDING",
+            batchId: createdBatch.batchId // Link transaction to batch
+          };
 
-    public void setSourceAccId(String sourceAccId) {
-        this.sourceAccId = sourceAccId;
-    }
-
-    public String getBatchName() {
-        return batchName;
-    }
-
-    public void setBatchName(String batchName) {
-        this.batchName = batchName;
-    }
-
-    public Double getTotAmt() {
-        return totAmt;
-    }
-
-    public void setTotAmt(Double totAmt) {
-        this.totAmt = totAmt;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public Boolean getDraft() {
-        return isDraft;
-    }
-
-    public void setDraft(Boolean draft) {
-        isDraft = draft;
-    }
-
-    public Double getTotDebitAmt() {
-        return totDebitAmt;
-    }
-
-    public void setTotDebitAmt(Double totDebitAmt) {
-        this.totDebitAmt = totDebitAmt;
-    }
-
-    public String getComments() {
-        return comments;
-    }
-
-    public void setComments(String comments) {
-        this.comments = comments;
-    }
-
-    public Integer getNumOfPayments() {
-        return numOfPayments;
-    }
-
-    public void setNumOfPayments(Integer numOfPayments) {
-        this.numOfPayments = numOfPayments;
-    }
-
-    public String getYourRef() {
-        return yourRef;
-    }
-
-    public void setYourRef(String yourRef) {
-        this.yourRef = yourRef;
-    }
-
-    public String getPaymentRef() {
-        return paymentRef;
-    }
-
-    public void setPaymentRef(String paymentRef) {
-        this.paymentRef = paymentRef;
-    }
-}
-
- 
-package com.scb.Payment.Initiation.controller;
-
-import com.scb.Payment.Initiation.entity.Batch;
-import com.scb.Payment.Initiation.entity.Transactions;
-import com.scb.Payment.Initiation.entity.Users;
-import com.scb.Payment.Initiation.repository.BatchRepository;
-import com.scb.Payment.Initiation.repository.UserRepository;
-import com.scb.Payment.Initiation.service.BatchService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Optional;
-
-@RestController
-@RequestMapping("/api/batches")
-//@CrossOrigin(origins = "http://localhost:3000/")
-public class BatchController {
-
-    @Autowired
-    private BatchService batchService;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private BatchRepository batchRepository;
-
-    @PostMapping("/create")
-    public Batch createBatch(@RequestBody Batch batch) {
-        Users creator = userRepository.findById(batch.getCreatedBy().getId()).orElseThrow(()-> new RuntimeException("USer not found"));
-        batch.setCreatedBy(creator);
-        return batchRepository.save(batch);
-    }
-
-    @GetMapping
-    public ResponseEntity<List<Batch>> getAllBatches() {
-        try {
-            List<Batch> batches = batchService.getAllBatches();
-            if (batches.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            return new ResponseEntity<>(batches, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+          await API.post("/api/transactions", transactionPayload);
         }
+      }
+
+      // Show success message with batch information
+      const batchIds = createdBatches.map(batch => batch.batchId).join(', ');
+      const totalTransactions = rows.length;
+      const totalBatches = createdBatches.length;
+      
+      alert(`Successfully created ${totalBatches} batch(es) with ${totalTransactions} transaction(s)!\nBatch ID(s): ${batchIds}`);
+
+      // Reset form properly
+      setInstructionDetails({
+        currency: "",
+        debitAccount: "",
+        accountNo: "",
+        valueDate: new Date().toISOString().split("T")[0],
+        companyName: ""
+      });
+
+      setRows([{
+        paymentMethod: '',
+        payeeName: '',
+        beneficiary: '',
+        payeeBank: '',
+        payeeBankBranch: '',
+        payeeBankAddress: '',
+        referenceNo: '',
+        amount: ''
+      }]);
+
+      setCurrentPage(1);
+      setErrors({ instruction: {}, rows: [] });
+
+    } catch (error) {
+      console.error("Batch/Transaction submission failed:", error);
+      alert(`Failed to submit batch/transactions: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Batch> getBatchById(@PathVariable("id") Long batchId) {
-        try {
-            Optional<Batch> batch = batchService.getBatchById(batchId);
-            if (batch.isPresent()) {
-                return new ResponseEntity<>(batch.get(), HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
+  // Calculate current row errors for display
+  const currentRowErrors = currentRows.map((_, displayIndex) => {
+    const actualIndex = startIndex + displayIndex;
+    return errors.rows[actualIndex] || {};
+  });
 
-//    @GetMapping("/created-by/{createdBy}")
-//    public ResponseEntity<List<Batch>> getBatchesByCreatedBy(@PathVariable("createdBy") Integer createdBy) {
-//        try {
-//            List<Batch> batches = batchService.getBatchesByCreatedBy(createdBy);
-//            return new ResponseEntity<>(batches, HttpStatus.OK);
-//        } catch (Exception e) {
-//            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
+  return (
+    <div className="min-vh-100 bg-light">
+      {!showDrafts}
+      {showDrafts ? (
+        <DraftManagement
+          onEditDraft={handleEditDraft}
+          onBackToCreate={() => setShowDrafts(false)}
+        />
+      ) : (
+        <div className="container-fluid px-4">
+          <div className="mb-4 mt-3">
+            <div className="d-flex justify-content-between align-items-center">
+              <h1 className="h2 fw-bold text-dark mb-0">
+                Create Payment Instructions
+              </h1>
+              <button
+                onClick={() => setShowDrafts(true)}
+                className="btn btn-outline-primary d-flex align-items-center"
+              >
+                <FileText className="me-2" size={18} />
+                View Drafts
+              </button>
+            </div>
+            <p className="text-muted mt-2 mb-0">
+              Set up your payment instructions with detailed beneficiary information. Transactions will be automatically grouped into batches by payment date and currency.
+            </p>
+          </div>
 
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<Batch>> getBatchesByStatus(@PathVariable("status") String status) {
-        try {
-            List<Batch> batches = batchService.getBatchesByStatus(status);
-            return new ResponseEntity<>(batches, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
+          <div className="mb-4">
+            <InstructionDetails
+              instructionDetails={instructionDetails}
+              updateInstructionDetails={updateInstructionDetails}
+              errors={errors.instruction}
+            />
+          </div>
 
-    @GetMapping("/drafts")
-    public ResponseEntity<List<Batch>> getDraftBatches() {
-        try {
-            List<Batch> batches = batchService.getDraftBatches();
-            return new ResponseEntity<>(batches, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
+          <div className="mb-4">
+            <PaymentDetailsTable
+              rows={currentRows}
+              updateRow={updateRow}
+              addRow={addRow}
+              removeRow={removeRow}
+              errors={currentRowErrors}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              canAddMore={canAddMore}
+            />
+          </div>
 
-    @GetMapping("/search")
-    public ResponseEntity<List<Batch>> searchBatchesByName(@RequestParam("name") String batchName) {
-        try {
-            List<Batch> batches = batchService.getBatchesByName(batchName);
-            return new ResponseEntity<>(batches, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
+          <div className="d-flex justify-content-end gap-3 mt-4">
+            <button
+              onClick={handleDraft}
+              className="btn btn-secondary d-inline-flex align-items-center px-4 py-2"
+              disabled={isSubmitting}
+            >
+              <Save className="me-2" style={{ width: '20px', height: '20px' }} />
+              {isSubmitting ? 'Saving...' : 'Save as Draft'}
+            </button>
+            <button
+              onClick={submitTransaction}
+              className="btn btn-success d-inline-flex align-items-center px-4 py-2"
+              disabled={isSubmitting}
+            >
+              <Send className="me-2" style={{ width: '20px', height: '20px' }} />
+              {isSubmitting ? 'Creating Batches & Submitting...' : 'Create Batches & Submit'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Batch> updateBatch(@PathVariable("id") Long batchId, @RequestBody Batch batchDetails) {
-        try {
-            Batch updatedBatch = batchService.updateBatch(batchId, batchDetails);
-            if (updatedBatch != null) {
-                return new ResponseEntity<>(updatedBatch, HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<HttpStatus> deleteBatch(@PathVariable("id") Long batchId) {
-        try {
-            boolean deleted = batchService.deleteBatch(batchId);
-            if (deleted) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            } else {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-//   // @PostMapping("/cft")
-//    // public ResponseEntity<List<Batch>> createBatchesFromTransactions(
-//          //  @RequestBody List<Transactions> transactions,
-//            @RequestParam Integer createdBy,
-//            @RequestParam String sourceAccId) {
-//        try {
-//            List<Batch> batches = batchService.createBatchesGroupedByDateAndCurrency(
-//                    transactions,
-//                    createdBy,
-//                    sourceAccId
-//            );
-//            return new ResponseEntity<>(batches, HttpStatus.CREATED);
-//        } catch (Exception e) {
-//            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-}
- 
+export default PaymentForm;
