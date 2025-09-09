@@ -235,19 +235,7 @@ const PaymentForm = () => {
     return groups;
   };
 
-iciary: transaction.beneficiary,
-            payeeBank: transaction.payeeBank,
-            payeeBankBranch: transaction.payeeBankBranch,
-            payeeBankAddress: transaction.payeeBankAddress,
-            referenceNo: transaction.referenceNo,
-            amount: transaction.amount,
-            status: "PENDING",
-            batchId: createdBatch.batchId // Link transaction to batch
-          };
 
-          await API.post("/api/transactions", transactionPayload);
-        }
-      }
 
       // Show success message with batch information
       const batchIds = createdBatches.map(batch => batch.batchId).join(', ');
