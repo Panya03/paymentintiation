@@ -459,3 +459,39 @@ console.log('Calculating total amount:', group.transactions.map(t => ({
   parsed: parseFloat(t.amount) || 0 
 })));
 console.log('Total amount calculated:', totalAmount);
+
+
+const totalAmount = group.transactions.reduce((sum, transaction) => {
+  const amount = parseFloat(transaction.amount) || 0;
+  return sum + amount;
+}, 0);
+
+console.log('Calculating total amount:', group.transactions.map(t => ({ 
+  original: t.amount, 
+  parsed: parseFloat(t.amount) || 0 
+})));
+console.log('Total amount calculated:', totalAmount);
+
+
+const batchPayload = {
+  sourceAccId: instructionDetails.debitAccount,
+  batchName: `${instructionDetails.companyName}_${group.valueDate}_${group.currency}`,
+  totAmt: totalAmount,
+  currency: group.currency,
+  isDraft: false,
+  totDebitAmt: totalAmount,
+  comments: `Batch created for ${instructionDetails.companyName} - ${group.valueDate}`,
+  numOfPayments: group.transactions.length,
+  yourRef: instructionDetails.accountNo,
+  paymentRef: `PAY_${Date.now()}_${groupKey}`,
+  transactions: group.transactions.map(transaction => ({
+    paymentMethod: transaction.paymentMethod,
+    payeeName: transaction.payeeName,
+    beneficiary: transaction.beneficiary,
+    payeeBank: transaction.payeeBank,
+    payeeBankBranch: transaction.payeeBankBranch,
+    payeeBankAddress: transaction.payeeBankAddress,
+    referenceNo: transaction.referenceNo,
+    amount: transaction.amount
+  }))
+};
