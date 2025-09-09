@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, FileText, Calendar, DollarSign, Edit, Trash2, Plus } from "lucide-react";
-import { loadDrafts,deleteDraftFromStorage, persistDrafts,saveDraftToStorage } from "../utils/draftUtils";
+import API from "../axiosInstance";
 import Status from "./Status";
 
 const DraftManagement = ({ onEditDraft, onBackToCreate }) => { 
@@ -8,15 +8,75 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
   const [selectedDrafts, setSelectedDrafts] = useState([]);
   const [hover, setHover] = useState(false);
   const [hover1, setHover1] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch transactions from backend
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      const response = await API.get("/api/transactions");
+      
+      // Transform backend transactions to draft format
+      const transformedDrafts = response.data.map(transaction => ({
+        id: transaction.transactionId.toString(),
+        name: transaction.companyName || `Transaction ${transaction.transactionId}`,
+        debitAccount: transaction.debitAccount,
+        status: transaction.status?.toLowerCase() || "draft",
+        currency: transaction.currency,
+        totalAmount: parseFloat(transaction.amount) || 0,
+        paymentCount: 1, // Since each transaction is one payment
+        createdDate: new Date().toLocaleDateString(), // You might want to add createdDate to your entity
+        lastModified: new Date().toLocaleDateString(),
+        data: {
+          instructionDetails: {
+            currency: transaction.currency,
+            debitAccount: transaction.debitAccount,
+            accountNo: transaction.accountNo,
+            valueDate: transaction.valueDate,
+            companyName: transaction.companyName
+          },
+          rows: [{
+            paymentMethod: transaction.paymentMethod,
+            payeeName: transaction.payeeName,
+            beneficiary: transaction.beneficiary,
+            payeeBank: transaction.payeeBank,
+            payeeBankBranch: transaction.payeeBankBranch,
+            payeeBankAddress: transaction.payeeBankAddress,
+            referenceNo: transaction.referenceNo?.toString() || '',
+            amount: transaction.amount
+          }]
+        }
+      }));
+
+      setDrafts(transformedDrafts);
+      setError(null);
+    } catch (err) {
+      console.error("Failed to fetch transactions:", err);
+      setError("Failed to load transactions");
+      setDrafts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setDrafts(loadDrafts());
+    fetchTransactions();
   }, []);
 
-  const onDeleteDraft = (id) => {                              
-    const updated = deleteDraftFromStorage(id);
-    setDrafts(updated);
-    setSelectedDrafts(prev => prev.filter(x => x !== id));
+  const onDeleteDraft = async (id) => {
+    const ok = window.confirm("Are you sure you want to delete this transaction?");
+    if (!ok) return;
+
+    try {
+      await API.delete(`/api/transactions/${id}`);
+      // Remove from local state
+      setDrafts(prev => prev.filter(d => d.id !== id));
+      setSelectedDrafts(prev => prev.filter(x => x !== id));
+    } catch (err) {
+      console.error("Failed to delete transaction:", err);
+      alert("Failed to delete transaction");
+    }
   };
 
   const handleSelectDraft = (draftId) => {
@@ -30,17 +90,62 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
     else setSelectedDrafts(drafts.map(d => d.id));
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (!selectedDrafts.length) return;
-    const ok = window.confirm(`Are you sure you want to delete ${selectedDrafts.length} draft(s)?`);
+    const ok = window.confirm(`Are you sure you want to delete ${selectedDrafts.length} transaction(s)?`);
     if (!ok) return;
 
-    // One-pass bulk delete
-    const updated = loadDrafts().filter(d => !selectedDrafts.includes(d.id));
-    persistDrafts(updated);
-    setDrafts(updated);
-    setSelectedDrafts([]);
+    try {
+      // Delete each selected transaction
+      await Promise.all(selectedDrafts.map(id => API.delete(`/api/transactions/${id}`)));
+      
+      // Update local state
+      setDrafts(prev => prev.filter(d => !selectedDrafts.includes(d.id)));
+      setSelectedDrafts([]);
+    } catch (err) {
+      console.error("Failed to delete transactions:", err);
+      alert("Failed to delete some transactions");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-vh-100 bg-light d-flex align-items-center justify-content-center">
+        <div className="text-center">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="text-muted">Loading transactions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-vh-100 bg-light d-flex align-items-center justify-content-center">
+        <div className="text-center">
+          <div className="text-danger mb-3">
+            <FileText size={48} />
+          </div>
+          <h5 className="text-danger">Error Loading Transactions</h5>
+          <p className="text-muted mb-3">{error}</p>
+          <button 
+            className="btn btn-primary me-2" 
+            onClick={fetchTransactions}
+          >
+            Retry
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={onBackToCreate}
+          >
+            Create New
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-vh-100 bg-light">
@@ -58,16 +163,14 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
             >
               <ArrowLeft size={20} />
             </button>
-
-            
           </div>
         </div>
       </div>
 
       <div className="container-xxl py-4">
         <div className="mb-3">
-          <h1 className="h4 fw-bold text-dark mb-1">Payment Instruction Drafts</h1>
-          <p className="text-muted mb-0">Manage your saved payment instruction drafts</p>
+          <h1 className="h4 fw-bold text-dark mb-1">Payment Transactions</h1>
+          <p className="text-muted mb-0">Manage your payment transactions</p>
         </div>
 
         {/* Action Bar */}
@@ -94,6 +197,13 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
             </div>
 
             <div className="d-flex align-items-center gap-2">
+              <button
+                className="btn btn-outline-primary btn-sm d-flex align-items-center"
+                onClick={fetchTransactions}
+              >
+                <FileText size={16} className="me-1" />
+                Refresh
+              </button>
               {selectedDrafts.length > 0 && (
                 <button
                   className="btn btn-danger btn-sm d-flex align-items-center"
@@ -106,16 +216,15 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
               <button
                 className="btn btn-primary btn-sm d-flex align-items-center"
                 onClick={onBackToCreate}
-               
-      onMouseEnter={() => setHover1(true)}
-      onMouseLeave={() => setHover1(false)}
-      style={{
-        backgroundColor: hover1 ? "#0D6EFD" : "white",
-        borderColor: "#0D6EFD",
-        color: hover1 ? "white" : "#0D6EFD",
-        transition: "all 0.2s ease"
-      }}
-    >
+                onMouseEnter={() => setHover1(true)}
+                onMouseLeave={() => setHover1(false)}
+                style={{
+                  backgroundColor: hover1 ? "#0D6EFD" : "white",
+                  borderColor: "#0D6EFD",
+                  color: hover1 ? "white" : "#0D6EFD",
+                  transition: "all 0.2s ease"
+                }}
+              >
                 <Plus size={16} className="me-1" />
                 New Payment Instruction
               </button>
@@ -123,7 +232,7 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
           </div>
         </div>
 
-        {/* Drafts Table */}
+        {/* Transactions Table */}
         <div className="card">
           <div className="table-responsive">
             <table className="table align-middle mb-0">
@@ -137,11 +246,11 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th className="text-uppercase text-muted small">Draft Name</th>
+                  <th className="text-uppercase text-muted small">Transaction Name</th>
                   <th className="text-uppercase text-muted small">Status</th>
                   <th className="text-uppercase text-muted small">Currency</th>
-                  <th className="text-uppercase text-muted small">Total Amount</th>
-                  <th className="text-uppercase text-muted small">Payments Count</th>
+                  <th className="text-uppercase text-muted small">Amount</th>
+                  <th className="text-uppercase text-muted small">Payee Name</th>
                   <th className="text-uppercase text-muted small">Created Date</th>
                   <th className="text-uppercase text-muted small">Last Modified</th>
                   <th className="text-uppercase text-muted small">Actions</th>
@@ -152,7 +261,7 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
                   <tr>
                     <td colSpan="9" className="text-center py-5 text-muted">
                       <FileText size={48} className="mb-2 opacity-50" />
-                      <p className="fs-6 mb-1">No drafts found</p>
+                      <p className="fs-6 mb-1">No transactions found</p>
                       <p className="small mb-3">
                         Create your first payment instruction to get started
                       </p>
@@ -160,14 +269,14 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
                         className="btn btn-primary"
                         onClick={onBackToCreate}
                         onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        backgroundColor: hover ? "#0D6EFD" : "white",
-        borderColor: "#0D6EFD",
-        color: hover ? "white" : "#0D6EFD",
-        transition: "all 0.2s ease"
-      }}
-    >
+                        onMouseLeave={() => setHover(false)}
+                        style={{
+                          backgroundColor: hover ? "#0D6EFD" : "white",
+                          borderColor: "#0D6EFD",
+                          color: hover ? "white" : "#0D6EFD",
+                          transition: "all 0.2s ease"
+                        }}
+                      >
                         Create New Payment Instruction
                       </button>
                     </td>
@@ -195,7 +304,6 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
                       </td>
 
                       <td>
-                        
                         <Status status={draft.status} />
                       </td>
 
@@ -209,7 +317,7 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
                       </td>
 
                       <td className="text-muted">
-                        {draft.paymentCount} payment{draft.paymentCount !== 1 ? "s" : ""}
+                        {draft.data.rows[0]?.payeeName || 'N/A'}
                       </td>
 
                       <td className="text-muted small">
@@ -225,7 +333,7 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
                         <div className="d-flex align-items-center gap-1">
                           <button
                             className="btn btn-link p-2 text-primary"
-                            title="Edit Draft"
+                            title="Edit Transaction"
                             onClick={() => onEditDraft(draft)}
                             style={{ color: "#00539B" }}
                           >
@@ -233,11 +341,8 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
                           </button>
                           <button
                             className="btn btn-link p-2 text-danger"
-                            title="Delete Draft"
-                            onClick={() => {
-                              const ok = window.confirm(`Are you sure you want to delete "${draft.name}"?`);
-                              if (ok) onDeleteDraft(draft.id);
-                            }}
+                            title="Delete Transaction"
+                            onClick={() => onDeleteDraft(draft.id)}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -250,10 +355,367 @@ const DraftManagement = ({ onEditDraft, onBackToCreate }) => {
             </table>
           </div>
         </div>
-
       </div>
     </div>
   );
 };
 
 export default DraftManagement;
+
+
+
+import React, { useEffect, useState } from 'react';
+import { Save, Send, FileText} from 'lucide-react';
+import InstructionDetails from './InstructionDetails';
+import PaymentDetailsTable from './PaymentDetailsTable';
+import DraftManagement from './DraftManagement';
+import { saveDraftToStorage } from '../utils/draftUtils';
+import "bootstrap/dist/css/bootstrap.min.css";
+import API from "../axiosInstance";
+
+// page component
+const PaymentForm = () => {
+  const ROWS_PER_PAGE = 10;
+
+  // instruction details - mapped to actual entity fields
+  const [instructionDetails, setInstructionDetails] = useState({
+    currency: '',
+    debitAccount: '',
+    accountNo: '',
+    valueDate: new Date().toISOString().split('T')[0],
+    companyName: '',
+   
+  });
+
+  // payment rows - mapped to actual entity fields (removed status)
+  const [rows, setRows] = useState([{
+    paymentMethod: '',
+    payeeName: '',
+    beneficiary: '',
+    payeeBank: '',
+    payeeBankBranch: '',
+    payeeBankAddress: '',
+    referenceNo: '',
+    amount: ''
+  }]);
+
+  // Page state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // State for errors
+  const [errors, setErrors] = useState({
+    instruction: {},
+    rows: []
+  });
+
+  const [showDrafts, setShowDrafts] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // helper to load a draft back
+  const handleEditDraft = (draft) => {
+    if (!draft?.data) return;
+    setShowDrafts(false);
+    setInstructionDetails(draft.data.instructionDetails || instructionDetails);
+    setRows(draft.data.rows?.length ? draft.data.rows : rows);
+  };
+
+  //page calculations
+  const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+  const endIndex = startIndex + ROWS_PER_PAGE;
+  const currentRows = rows.slice(startIndex, endIndex);
+  const canAddMore = rows.length < 100;
+
+  // Update instruction details
+  const updateInstructionDetails = (field, value) => {
+    setInstructionDetails(prev => ({ ...prev, [field]: value }));
+    
+    // Clear error when user updates field
+    if (errors.instruction[field]) {
+      setErrors(prev => ({
+        ...prev,
+        instruction: { ...prev.instruction, [field]: '' }
+      }));
+    }
+  };
+
+  // Update a row
+  const updateRow = (displayIndex, field, value) => {
+    const actualIndex = startIndex + displayIndex;
+    const newRows = [...rows];
+    newRows[actualIndex] = { ...newRows[actualIndex], [field]: value };
+    setRows(newRows);
+
+    // Clear error once field updates
+    if (errors.rows[actualIndex] && errors.rows[actualIndex][field]) {
+      const newErrors = [...errors.rows];
+      newErrors[actualIndex] = { ...newErrors[actualIndex], [field]: '' };
+      setErrors(prev => ({ ...prev, rows: newErrors }));
+    }
+  };
+
+  // Add new row (removed status)
+  const addRow = () => {
+    if (canAddMore) {
+      const newRow = {
+        paymentMethod: '',
+        payeeName: '',
+        beneficiary: '',
+        payeeBank: '',
+        payeeBankBranch: '',
+        payeeBankAddress: '',
+        referenceNo: '',
+        amount: ''
+      };
+      setRows([...rows, newRow]);
+
+      // Navigate to the page with the new row
+      const newTotalPages = Math.ceil((rows.length + 1) / ROWS_PER_PAGE);
+      setCurrentPage(newTotalPages);
+    }
+  };
+
+  // Remove row
+  const removeRow = (displayIndex) => {
+    if (rows.length > 1) {
+      const actualIndex = startIndex + displayIndex;
+      const newRows = rows.filter((_, index) => index !== actualIndex);
+      setRows(newRows);
+
+      const newErrorRows = errors.rows.filter((_, index) => index !== actualIndex);
+      setErrors(prev => ({ ...prev, rows: newErrorRows }));
+
+      // Adjust current page if necessary
+      const newTotalPages = Math.max(1, Math.ceil(newRows.length / ROWS_PER_PAGE));
+      if (currentPage > newTotalPages) {
+        setCurrentPage(newTotalPages);
+      }
+    }
+  };
+
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors = { instruction: {}, rows: [] };
+
+    // Validate instruction details
+    if (!instructionDetails.currency) {
+      newErrors.instruction.currency = 'Currency is required';
+    }
+    if (!instructionDetails.debitAccount) {
+      newErrors.instruction.debitAccount = 'Debit account is required';
+    }
+    if (!instructionDetails.accountNo) {
+      newErrors.instruction.accountNo = 'Account number is required';
+    }
+    if (!instructionDetails.valueDate) {
+      newErrors.instruction.valueDate = 'Value date is required';
+    } else if (new Date(instructionDetails.valueDate) < new Date()) {
+      newErrors.instruction.valueDate = 'Value date must be today or later';
+    }
+    if (!instructionDetails.companyName) {
+      newErrors.instruction.companyName = 'Company name is required';
+    }
+
+    // Validate rows
+    rows.forEach((row, index) => {
+      const rowErrors = {};
+      if (!row.paymentMethod) rowErrors.paymentMethod = 'Required';
+      if (!row.payeeName) rowErrors.payeeName = 'Required';
+      if (!row.beneficiary) rowErrors.beneficiary = 'Required';
+      if (!row.payeeBank) rowErrors.payeeBank = 'Required';
+      if (!row.payeeBankBranch) rowErrors.payeeBankBranch = 'Required';
+      if (!row.payeeBankAddress) rowErrors.payeeBankAddress = 'Required';
+      if (!row.referenceNo) rowErrors.referenceNo = 'Required';
+      if (!row.amount) {
+        rowErrors.amount = 'Required';
+      } else if (parseFloat(row.amount) <= 0) {
+        rowErrors.amount = 'Amount must be positive';
+      }
+      newErrors.rows[index] = rowErrors;
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors.instruction).length === 0 && 
+           newErrors.rows.every(rowError => Object.keys(rowError).length === 0);
+  };
+
+  // Save draft
+  const handleDraft = () => {
+    if (!validateForm()) {
+      // If validation fails, do not save draft
+      return;
+    }
+
+    const draft = {
+      id: Date.now().toString(),
+      name: instructionDetails.companyName || "Untitled Draft",
+      debitAccount: instructionDetails.debitAccount,
+      status: "draft",
+      currency: instructionDetails.currency,
+      totalAmount: rows.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+      paymentCount: rows.length,
+      createdDate: new Date().toLocaleDateString(),
+      lastModified: new Date().toLocaleDateString(),
+      data: {
+        instructionDetails,
+        rows,
+      },
+    };
+
+    saveDraftToStorage(draft);
+    setShowDrafts(true); // Show the drafts screen
+  };
+
+  // Submit transaction - FIXED
+  const submitTransaction = async () => {
+    if (!validateForm()) {
+      alert("Please fix all validation errors before submitting.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Build transaction payload using data from first row
+      const transactionPayload = {
+        currency: instructionDetails.currency,
+        debitAccount: instructionDetails.debitAccount,
+        accountNo: instructionDetails.accountNo,
+        valueDate: instructionDetails.valueDate,
+        companyName: instructionDetails.companyName,
+        paymentMethod: rows[0].paymentMethod,
+        payeeName: rows[0].payeeName,
+        beneficiary: rows[0].beneficiary,
+        payeeBank: rows[0].payeeBank,
+        payeeBankBranch: rows[0].payeeBankBranch,
+        payeeBankAddress: rows[0].payeeBankAddress,
+        referenceNo: rows[0].referenceNo,
+        amount: rows[0].amount,
+        status: "PENDING"
+      };
+  
+      const response = await API.post("/api/transactions", transactionPayload);
+  
+      alert(`Transaction submitted successfully! ID: ${response.data.transactionId}`);
+  
+      // Reset form properly
+      setInstructionDetails({
+        currency: "",
+        debitAccount: "",
+        accountNo: "",
+        valueDate: new Date().toISOString().split("T")[0],
+        companyName: ""
+      });
+
+      setRows([{
+        paymentMethod: '',
+        payeeName: '',
+        beneficiary: '',
+        payeeBank: '',
+        payeeBankBranch: '',
+        payeeBankAddress: '',
+        referenceNo: '',
+        amount: ''
+      }]);
+
+      setCurrentPage(1);
+      setErrors({ instruction: {}, rows: [] });
+
+    } catch (error) {
+      console.error("Transaction submission failed:", error);
+      alert(`Failed to submit transaction: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Calculate current row errors for display
+  const currentRowErrors = currentRows.map((_, displayIndex) => {
+    const actualIndex = startIndex + displayIndex;
+    return errors.rows[actualIndex] || {};
+  });
+
+  return (
+    <div className="min-vh-100 bg-light">
+      {!showDrafts}
+      {showDrafts ? (
+        <DraftManagement
+          onEditDraft={handleEditDraft}
+          onBackToCreate={() => setShowDrafts(false)}
+        />
+      ) : (
+        <div className="container-fluid px-4">
+          <div className="mb-4 mt-3">
+            <div className="d-flex justify-content-between align-items-center">
+              <h1 className="h2 fw-bold text-dark mb-0">
+                Create Payment Instructions
+              </h1>
+              <button
+                onClick={() => setShowDrafts(true)}
+                className="btn btn-outline-primary d-flex align-items-center"
+              >
+                <FileText className="me-2" size={18} />
+                View Drafts
+              </button>
+            </div>
+            <p className="text-muted mt-2 mb-0">
+              Set up your payment instructions with detailed beneficiary information
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <InstructionDetails
+              instructionDetails={instructionDetails}
+              updateInstructionDetails={updateInstructionDetails}
+              errors={errors.instruction}
+            />
+          </div>
+
+          <div className="mb-4">
+            <PaymentDetailsTable
+              rows={currentRows}
+              updateRow={updateRow}
+              addRow={addRow}
+              removeRow={removeRow}
+              errors={currentRowErrors}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              canAddMore={canAddMore}
+            />
+          </div>
+
+          <div className="d-flex justify-content-end gap-3 mt-4">
+            <button
+              onClick={handleDraft}
+              className="btn btn-secondary d-inline-flex align-items-center px-4 py-2"
+              disabled={isSubmitting}
+            >
+              <Save className="me-2" style={{ width: '20px', height: '20px' }} />
+              {isSubmitting ? 'Saving...' : 'Save as Draft'}
+            </button>
+            <button
+              onClick={submitTransaction}
+              className="btn btn-success d-inline-flex align-items-center px-4 py-2"
+              disabled={isSubmitting}
+            >
+              <Send className="me-2" style={{ width: '20px', height: '20px' }} />
+              {isSubmitting ? 'Submitting...' : 'Submit Transaction'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default PaymentForm;
+
+
+
+
