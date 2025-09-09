@@ -1,721 +1,332 @@
-import React, { useEffect, useState } from "react";
-import { ArrowLeft, FileText, Calendar, DollarSign, Edit, Trash2, Plus } from "lucide-react";
-import API from "../axiosInstance";
-import Status from "./Status";
+package com.scb.Payment.Initiation.entity;
 
-const DraftManagement = ({ onEditDraft, onBackToCreate }) => { 
-  const [drafts, setDrafts] = useState([]);                   
-  const [selectedDrafts, setSelectedDrafts] = useState([]);
-  const [hover, setHover] = useState(false);
-  const [hover1, setHover1] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.persistence.*;
+import org.springframework.security.core.userdetails.User;
 
-  // Fetch transactions from backend
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true);
-      const response = await API.get("/api/transactions");
-      
-      // Transform backend transactions to draft format
-      const transformedDrafts = response.data.map(transaction => ({
-        id: transaction.transactionId.toString(),
-        name: transaction.companyName || `Transaction ${transaction.transactionId}`,
-        debitAccount: transaction.debitAccount,
-        status: transaction.status?.toLowerCase() || "draft",
-        currency: transaction.currency,
-        totalAmount: parseFloat(transaction.amount) || 0,
-        paymentCount: 1, // Since each transaction is one payment
-        createdDate: new Date().toLocaleDateString(), // You might want to add createdDate to your entity
-        lastModified: new Date().toLocaleDateString(),
-        data: {
-          instructionDetails: {
-            currency: transaction.currency,
-            debitAccount: transaction.debitAccount,
-            accountNo: transaction.accountNo,
-            valueDate: transaction.valueDate,
-            companyName: transaction.companyName
-          },
-          rows: [{
-            paymentMethod: transaction.paymentMethod,
-            payeeName: transaction.payeeName,
-            beneficiary: transaction.beneficiary,
-            payeeBank: transaction.payeeBank,
-            payeeBankBranch: transaction.payeeBankBranch,
-            payeeBankAddress: transaction.payeeBankAddress,
-            referenceNo: transaction.referenceNo?.toString() || '',
-            amount: transaction.amount
-          }]
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "batches")
+public class Batch {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "batch_id")
+    private Long batchId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by",nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
+    private Users createdBy;
+
+    @Column(name = "source_acc_id")
+    private String sourceAccId;
+
+    @Column(name = "batch_name")
+    private String batchName;
+
+    @Column(name = "tot_amt")
+    private Double totAmt;
+
+    @Column(name = "currency")
+    private String currency;
+
+    @Column(name = "status")
+    private String status;
+
+    @Column(name = "is_draft")
+    private Boolean isDraft;
+
+
+    @Column(name = "tot_debit_amt")
+    private Double totDebitAmt;
+
+    @Column(name = "comments")
+    private String comments;
+
+    @Column(name = "num_of_payments")
+    private Integer numOfPayments;
+
+    @Column(name = "your_ref")
+    private String yourRef;
+
+    @Column(name = "payment_ref")
+    private String paymentRef;
+
+    // Constructors
+    public Batch() {}
+
+    public Batch(Long batchId, Users createdBy, String sourceAccId, String batchName, Double totAmt, String currency, String status, Boolean isDraft, Double totDebitAmt, String comments, Integer numOfPayments, String yourRef, String paymentRef) {
+        this.batchId = batchId;
+        this.createdBy = createdBy;
+        this.sourceAccId = sourceAccId;
+        this.batchName = batchName;
+        this.totAmt = totAmt;
+        this.currency = currency;
+        this.status = status;
+        this.isDraft = isDraft;
+        this.totDebitAmt = totDebitAmt;
+        this.comments = comments;
+        this.numOfPayments = numOfPayments;
+        this.yourRef = yourRef;
+        this.paymentRef = paymentRef;
+    }
+
+    public Long getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(Long batchId) {
+        this.batchId = batchId;
+    }
+
+    public Users getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(Users createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public String getSourceAccId() {
+        return sourceAccId;
+    }
+
+    public void setSourceAccId(String sourceAccId) {
+        this.sourceAccId = sourceAccId;
+    }
+
+    public String getBatchName() {
+        return batchName;
+    }
+
+    public void setBatchName(String batchName) {
+        this.batchName = batchName;
+    }
+
+    public Double getTotAmt() {
+        return totAmt;
+    }
+
+    public void setTotAmt(Double totAmt) {
+        this.totAmt = totAmt;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Boolean getDraft() {
+        return isDraft;
+    }
+
+    public void setDraft(Boolean draft) {
+        isDraft = draft;
+    }
+
+    public Double getTotDebitAmt() {
+        return totDebitAmt;
+    }
+
+    public void setTotDebitAmt(Double totDebitAmt) {
+        this.totDebitAmt = totDebitAmt;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
+    }
+
+    public Integer getNumOfPayments() {
+        return numOfPayments;
+    }
+
+    public void setNumOfPayments(Integer numOfPayments) {
+        this.numOfPayments = numOfPayments;
+    }
+
+    public String getYourRef() {
+        return yourRef;
+    }
+
+    public void setYourRef(String yourRef) {
+        this.yourRef = yourRef;
+    }
+
+    public String getPaymentRef() {
+        return paymentRef;
+    }
+
+    public void setPaymentRef(String paymentRef) {
+        this.paymentRef = paymentRef;
+    }
+}
+
+ 
+package com.scb.Payment.Initiation.controller;
+
+import com.scb.Payment.Initiation.entity.Batch;
+import com.scb.Payment.Initiation.entity.Transactions;
+import com.scb.Payment.Initiation.entity.Users;
+import com.scb.Payment.Initiation.repository.BatchRepository;
+import com.scb.Payment.Initiation.repository.UserRepository;
+import com.scb.Payment.Initiation.service.BatchService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/batches")
+//@CrossOrigin(origins = "http://localhost:3000/")
+public class BatchController {
+
+    @Autowired
+    private BatchService batchService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private BatchRepository batchRepository;
+
+    @PostMapping("/create")
+    public Batch createBatch(@RequestBody Batch batch) {
+        Users creator = userRepository.findById(batch.getCreatedBy().getId()).orElseThrow(()-> new RuntimeException("USer not found"));
+        batch.setCreatedBy(creator);
+        return batchRepository.save(batch);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Batch>> getAllBatches() {
+        try {
+            List<Batch> batches = batchService.getAllBatches();
+            if (batches.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            }
+            return new ResponseEntity<>(batches, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-      }));
-
-      setDrafts(transformedDrafts);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to fetch transactions:", err);
-      setError("Failed to load transactions");
-      setDrafts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-
-  const onDeleteDraft = async (id) => {
-    const ok = window.confirm("Are you sure you want to delete this transaction?");
-    if (!ok) return;
-
-    try {
-      await API.delete(`/api/transactions/${id}`);
-      // Remove from local state
-      setDrafts(prev => prev.filter(d => d.id !== id));
-      setSelectedDrafts(prev => prev.filter(x => x !== id));
-    } catch (err) {
-      console.error("Failed to delete transaction:", err);
-      alert("Failed to delete transaction");
-    }
-  };
-
-  const handleSelectDraft = (draftId) => {
-    setSelectedDrafts(prev =>
-      prev.includes(draftId) ? prev.filter(id => id !== draftId) : [...prev, draftId]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedDrafts.length === drafts.length) setSelectedDrafts([]);
-    else setSelectedDrafts(drafts.map(d => d.id));
-  };
-
-  const handleBulkDelete = async () => {
-    if (!selectedDrafts.length) return;
-    const ok = window.confirm(`Are you sure you want to delete ${selectedDrafts.length} transaction(s)?`);
-    if (!ok) return;
-
-    try {
-      // Delete each selected transaction
-      await Promise.all(selectedDrafts.map(id => API.delete(`/api/transactions/${id}`)));
-      
-      // Update local state
-      setDrafts(prev => prev.filter(d => !selectedDrafts.includes(d.id)));
-      setSelectedDrafts([]);
-    } catch (err) {
-      console.error("Failed to delete transactions:", err);
-      alert("Failed to delete some transactions");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-vh-100 bg-light d-flex align-items-center justify-content-center">
-        <div className="text-center">
-          <div className="spinner-border text-primary mb-3" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="text-muted">Loading transactions...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-vh-100 bg-light d-flex align-items-center justify-content-center">
-        <div className="text-center">
-          <div className="text-danger mb-3">
-            <FileText size={48} />
-          </div>
-          <h5 className="text-danger">Error Loading Transactions</h5>
-          <p className="text-muted mb-3">{error}</p>
-          <button 
-            className="btn btn-primary me-2" 
-            onClick={fetchTransactions}
-          >
-            Retry
-          </button>
-          <button 
-            className="btn btn-secondary" 
-            onClick={onBackToCreate}
-          >
-            Create New
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-vh-100 bg-light">
-      {/* Header */}
-      <div
-        className="border-bottom px-3 py-3"
-        style={{ backgroundColor: "#0d47a1", borderColor: "#002b4e" }}
-      >
-        <div className="d-flex align-items-center justify-content-between">
-          <div className="d-flex align-items-center">
-            <button
-              onClick={onBackToCreate}
-              className="btn btn-link text-white me-3 p-2"
-              style={{ textDecoration: "none" }}
-            >
-              <ArrowLeft size={20} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="container-xxl py-4">
-        <div className="mb-3">
-          <h1 className="h4 fw-bold text-dark mb-1">Payment Transactions</h1>
-          <p className="text-muted mb-0">Manage your payment transactions</p>
-        </div>
-
-        {/* Action Bar */}
-        <div className="card mb-4">
-          <div className="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div className="d-flex align-items-center gap-3">
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  checked={selectedDrafts.length === drafts.length && drafts.length > 0}
-                  onChange={handleSelectAll}
-                  id="selectAll"
-                />
-                <label className="form-check-label" htmlFor="selectAll">
-                  Select All
-                </label>
-              </div>
-              {selectedDrafts.length > 0 && (
-                <span className="text-muted small">
-                  {selectedDrafts.length} item(s) selected
-                </span>
-              )}
-            </div>
-
-            <div className="d-flex align-items-center gap-2">
-              <button
-                className="btn btn-outline-primary btn-sm d-flex align-items-center"
-                onClick={fetchTransactions}
-              >
-                <FileText size={16} className="me-1" />
-                Refresh
-              </button>
-              {selectedDrafts.length > 0 && (
-                <button
-                  className="btn btn-danger btn-sm d-flex align-items-center"
-                  onClick={handleBulkDelete}
-                >
-                  <Trash2 size={16} className="me-1" />
-                  Delete Selected
-                </button>
-              )}
-              <button
-                className="btn btn-primary btn-sm d-flex align-items-center"
-                onClick={onBackToCreate}
-                onMouseEnter={() => setHover1(true)}
-                onMouseLeave={() => setHover1(false)}
-                style={{
-                  backgroundColor: hover1 ? "#0D6EFD" : "white",
-                  borderColor: "#0D6EFD",
-                  color: hover1 ? "white" : "#0D6EFD",
-                  transition: "all 0.2s ease"
-                }}
-              >
-                <Plus size={16} className="me-1" />
-                New Payment Instruction
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Transactions Table */}
-        <div className="card">
-          <div className="table-responsive">
-            <table className="table align-middle mb-0">
-              <thead className="table-light position-sticky top-0">
-                <tr>
-                  <th style={{ width: 40 }}>
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      checked={selectedDrafts.length === drafts.length && drafts.length > 0}
-                      onChange={handleSelectAll}
-                    />
-                  </th>
-                  <th className="text-uppercase text-muted small">Transaction Name</th>
-                  <th className="text-uppercase text-muted small">Status</th>
-                  <th className="text-uppercase text-muted small">Currency</th>
-                  <th className="text-uppercase text-muted small">Amount</th>
-                  <th className="text-uppercase text-muted small">Payee Name</th>
-                  <th className="text-uppercase text-muted small">Created Date</th>
-                  <th className="text-uppercase text-muted small">Last Modified</th>
-                  <th className="text-uppercase text-muted small">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {drafts.length === 0 ? (
-                  <tr>
-                    <td colSpan="9" className="text-center py-5 text-muted">
-                      <FileText size={48} className="mb-2 opacity-50" />
-                      <p className="fs-6 mb-1">No transactions found</p>
-                      <p className="small mb-3">
-                        Create your first payment instruction to get started
-                      </p>
-                      <button
-                        className="btn btn-primary"
-                        onClick={onBackToCreate}
-                        onMouseEnter={() => setHover(true)}
-                        onMouseLeave={() => setHover(false)}
-                        style={{
-                          backgroundColor: hover ? "#0D6EFD" : "white",
-                          borderColor: "#0D6EFD",
-                          color: hover ? "white" : "#0D6EFD",
-                          transition: "all 0.2s ease"
-                        }}
-                      >
-                        Create New Payment Instruction
-                      </button>
-                    </td>
-                  </tr>
-                ) : (
-                  drafts.map((draft) => (
-                    <tr key={draft.id}>
-                      <td>
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={selectedDrafts.includes(draft.id)}
-                          onChange={() => handleSelectDraft(draft.id)}
-                        />
-                      </td>
-
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <FileText size={18} className="me-2 text-secondary" />
-                          <div>
-                            <div className="fw-semibold text-dark">{draft.name}</div>
-                            <div className="small text-muted">{draft.debitAccount}</div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td>
-                        <Status status={draft.status} />
-                      </td>
-
-                      <td className="fw-semibold text-dark">{draft.currency}</td>
-
-                      <td className="fw-semibold text-dark">
-                        <span className="d-inline-flex align-items-center">
-                          <DollarSign size={16} className="me-1 text-secondary" />
-                          {Number(draft.totalAmount).toFixed(2)}
-                        </span>
-                      </td>
-
-                      <td className="text-muted">
-                        {draft.data.rows[0]?.payeeName || 'N/A'}
-                      </td>
-
-                      <td className="text-muted small">
-                        <span className="d-inline-flex align-items-center">
-                          <Calendar size={16} className="me-1 text-secondary" />
-                          {draft.createdDate}
-                        </span>
-                      </td>
-
-                      <td className="text-muted small">{draft.lastModified}</td>
-
-                      <td>
-                        <div className="d-flex align-items-center gap-1">
-                          <button
-                            className="btn btn-link p-2 text-primary"
-                            title="Edit Transaction"
-                            onClick={() => onEditDraft(draft)}
-                            style={{ color: "#00539B" }}
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            className="btn btn-link p-2 text-danger"
-                            title="Delete Transaction"
-                            onClick={() => onDeleteDraft(draft.id)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default DraftManagement;
-
-
-
-import React, { useEffect, useState } from 'react';
-import { Save, Send, FileText} from 'lucide-react';
-import InstructionDetails from './InstructionDetails';
-import PaymentDetailsTable from './PaymentDetailsTable';
-import DraftManagement from './DraftManagement';
-import { saveDraftToStorage } from '../utils/draftUtils';
-import "bootstrap/dist/css/bootstrap.min.css";
-import API from "../axiosInstance";
-
-// page component
-const PaymentForm = () => {
-  const ROWS_PER_PAGE = 10;
-
-  // instruction details - mapped to actual entity fields
-  const [instructionDetails, setInstructionDetails] = useState({
-    currency: '',
-    debitAccount: '',
-    accountNo: '',
-    valueDate: new Date().toISOString().split('T')[0],
-    companyName: '',
-   
-  });
-
-  // payment rows - mapped to actual entity fields (removed status)
-  const [rows, setRows] = useState([{
-    paymentMethod: '',
-    payeeName: '',
-    beneficiary: '',
-    payeeBank: '',
-    payeeBankBranch: '',
-    payeeBankAddress: '',
-    referenceNo: '',
-    amount: ''
-  }]);
-
-  // Page state
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // State for errors
-  const [errors, setErrors] = useState({
-    instruction: {},
-    rows: []
-  });
-
-  const [showDrafts, setShowDrafts] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // helper to load a draft back
-  const handleEditDraft = (draft) => {
-    if (!draft?.data) return;
-    setShowDrafts(false);
-    setInstructionDetails(draft.data.instructionDetails || instructionDetails);
-    setRows(draft.data.rows?.length ? draft.data.rows : rows);
-  };
-
-  //page calculations
-  const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
-  const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-  const endIndex = startIndex + ROWS_PER_PAGE;
-  const currentRows = rows.slice(startIndex, endIndex);
-  const canAddMore = rows.length < 100;
-
-  // Update instruction details
-  const updateInstructionDetails = (field, value) => {
-    setInstructionDetails(prev => ({ ...prev, [field]: value }));
-    
-    // Clear error when user updates field
-    if (errors.instruction[field]) {
-      setErrors(prev => ({
-        ...prev,
-        instruction: { ...prev.instruction, [field]: '' }
-      }));
-    }
-  };
-
-  // Update a row
-  const updateRow = (displayIndex, field, value) => {
-    const actualIndex = startIndex + displayIndex;
-    const newRows = [...rows];
-    newRows[actualIndex] = { ...newRows[actualIndex], [field]: value };
-    setRows(newRows);
-
-    // Clear error once field updates
-    if (errors.rows[actualIndex] && errors.rows[actualIndex][field]) {
-      const newErrors = [...errors.rows];
-      newErrors[actualIndex] = { ...newErrors[actualIndex], [field]: '' };
-      setErrors(prev => ({ ...prev, rows: newErrors }));
-    }
-  };
-
-  // Add new row (removed status)
-  const addRow = () => {
-    if (canAddMore) {
-      const newRow = {
-        paymentMethod: '',
-        payeeName: '',
-        beneficiary: '',
-        payeeBank: '',
-        payeeBankBranch: '',
-        payeeBankAddress: '',
-        referenceNo: '',
-        amount: ''
-      };
-      setRows([...rows, newRow]);
-
-      // Navigate to the page with the new row
-      const newTotalPages = Math.ceil((rows.length + 1) / ROWS_PER_PAGE);
-      setCurrentPage(newTotalPages);
-    }
-  };
-
-  // Remove row
-  const removeRow = (displayIndex) => {
-    if (rows.length > 1) {
-      const actualIndex = startIndex + displayIndex;
-      const newRows = rows.filter((_, index) => index !== actualIndex);
-      setRows(newRows);
-
-      const newErrorRows = errors.rows.filter((_, index) => index !== actualIndex);
-      setErrors(prev => ({ ...prev, rows: newErrorRows }));
-
-      // Adjust current page if necessary
-      const newTotalPages = Math.max(1, Math.ceil(newRows.length / ROWS_PER_PAGE));
-      if (currentPage > newTotalPages) {
-        setCurrentPage(newTotalPages);
-      }
-    }
-  };
-
-  // Handle page change
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-  };
-
-  // Validate form
-  const validateForm = () => {
-    const newErrors = { instruction: {}, rows: [] };
-
-    // Validate instruction details
-    if (!instructionDetails.currency) {
-      newErrors.instruction.currency = 'Currency is required';
-    }
-    if (!instructionDetails.debitAccount) {
-      newErrors.instruction.debitAccount = 'Debit account is required';
-    }
-    if (!instructionDetails.accountNo) {
-      newErrors.instruction.accountNo = 'Account number is required';
-    }
-    if (!instructionDetails.valueDate) {
-      newErrors.instruction.valueDate = 'Value date is required';
-    } else if (new Date(instructionDetails.valueDate) < new Date()) {
-      newErrors.instruction.valueDate = 'Value date must be today or later';
-    }
-    if (!instructionDetails.companyName) {
-      newErrors.instruction.companyName = 'Company name is required';
     }
 
-    // Validate rows
-    rows.forEach((row, index) => {
-      const rowErrors = {};
-      if (!row.paymentMethod) rowErrors.paymentMethod = 'Required';
-      if (!row.payeeName) rowErrors.payeeName = 'Required';
-      if (!row.beneficiary) rowErrors.beneficiary = 'Required';
-      if (!row.payeeBank) rowErrors.payeeBank = 'Required';
-      if (!row.payeeBankBranch) rowErrors.payeeBankBranch = 'Required';
-      if (!row.payeeBankAddress) rowErrors.payeeBankAddress = 'Required';
-      if (!row.referenceNo) rowErrors.referenceNo = 'Required';
-      if (!row.amount) {
-        rowErrors.amount = 'Required';
-      } else if (parseFloat(row.amount) <= 0) {
-        rowErrors.amount = 'Amount must be positive';
-      }
-      newErrors.rows[index] = rowErrors;
-    });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors.instruction).length === 0 && 
-           newErrors.rows.every(rowError => Object.keys(rowError).length === 0);
-  };
-
-  // Save draft
-  const handleDraft = () => {
-    if (!validateForm()) {
-      // If validation fails, do not save draft
-      return;
+    @GetMapping("/{id}")
+    public ResponseEntity<Batch> getBatchById(@PathVariable("id") Long batchId) {
+        try {
+            Optional<Batch> batch = batchService.getBatchById(batchId);
+            if (batch.isPresent()) {
+                return new ResponseEntity<>(batch.get(), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
-    const draft = {
-      id: Date.now().toString(),
-      name: instructionDetails.companyName || "Untitled Draft",
-      debitAccount: instructionDetails.debitAccount,
-      status: "draft",
-      currency: instructionDetails.currency,
-      totalAmount: rows.reduce((sum, row) => sum + Number(row.amount || 0), 0),
-      paymentCount: rows.length,
-      createdDate: new Date().toLocaleDateString(),
-      lastModified: new Date().toLocaleDateString(),
-      data: {
-        instructionDetails,
-        rows,
-      },
-    };
+//    @GetMapping("/created-by/{createdBy}")
+//    public ResponseEntity<List<Batch>> getBatchesByCreatedBy(@PathVariable("createdBy") Integer createdBy) {
+//        try {
+//            List<Batch> batches = batchService.getBatchesByCreatedBy(createdBy);
+//            return new ResponseEntity<>(batches, HttpStatus.OK);
+//        } catch (Exception e) {
+//            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
 
-    saveDraftToStorage(draft);
-    setShowDrafts(true); // Show the drafts screen
-  };
-
-  // Submit transaction - FIXED
-  const submitTransaction = async () => {
-    if (!validateForm()) {
-      alert("Please fix all validation errors before submitting.");
-      return;
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<Batch>> getBatchesByStatus(@PathVariable("status") String status) {
+        try {
+            List<Batch> batches = batchService.getBatchesByStatus(status);
+            return new ResponseEntity<>(batches, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
-    setIsSubmitting(true);
-
-    try {
-      // Build transaction payload using data from first row
-      const transactionPayload = {
-        currency: instructionDetails.currency,
-        debitAccount: instructionDetails.debitAccount,
-        accountNo: instructionDetails.accountNo,
-        valueDate: instructionDetails.valueDate,
-        companyName: instructionDetails.companyName,
-        paymentMethod: rows[0].paymentMethod,
-        payeeName: rows[0].payeeName,
-        beneficiary: rows[0].beneficiary,
-        payeeBank: rows[0].payeeBank,
-        payeeBankBranch: rows[0].payeeBankBranch,
-        payeeBankAddress: rows[0].payeeBankAddress,
-        referenceNo: rows[0].referenceNo,
-        amount: rows[0].amount,
-        status: "PENDING"
-      };
-  
-      const response = await API.post("/api/transactions", transactionPayload);
-  
-      alert(`Transaction submitted successfully! ID: ${response.data.transactionId}`);
-  
-      // Reset form properly
-      setInstructionDetails({
-        currency: "",
-        debitAccount: "",
-        accountNo: "",
-        valueDate: new Date().toISOString().split("T")[0],
-        companyName: ""
-      });
-
-      setRows([{
-        paymentMethod: '',
-        payeeName: '',
-        beneficiary: '',
-        payeeBank: '',
-        payeeBankBranch: '',
-        payeeBankAddress: '',
-        referenceNo: '',
-        amount: ''
-      }]);
-
-      setCurrentPage(1);
-      setErrors({ instruction: {}, rows: [] });
-
-    } catch (error) {
-      console.error("Transaction submission failed:", error);
-      alert(`Failed to submit transaction: ${error.response?.data?.message || error.message}`);
-    } finally {
-      setIsSubmitting(false);
+    @GetMapping("/drafts")
+    public ResponseEntity<List<Batch>> getDraftBatches() {
+        try {
+            List<Batch> batches = batchService.getDraftBatches();
+            return new ResponseEntity<>(batches, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
-  };
 
-  // Calculate current row errors for display
-  const currentRowErrors = currentRows.map((_, displayIndex) => {
-    const actualIndex = startIndex + displayIndex;
-    return errors.rows[actualIndex] || {};
-  });
+    @GetMapping("/search")
+    public ResponseEntity<List<Batch>> searchBatchesByName(@RequestParam("name") String batchName) {
+        try {
+            List<Batch> batches = batchService.getBatchesByName(batchName);
+            return new ResponseEntity<>(batches, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-  return (
-    <div className="min-vh-100 bg-light">
-      {!showDrafts}
-      {showDrafts ? (
-        <DraftManagement
-          onEditDraft={handleEditDraft}
-          onBackToCreate={() => setShowDrafts(false)}
-        />
-      ) : (
-        <div className="container-fluid px-4">
-          <div className="mb-4 mt-3">
-            <div className="d-flex justify-content-between align-items-center">
-              <h1 className="h2 fw-bold text-dark mb-0">
-                Create Payment Instructions
-              </h1>
-              <button
-                onClick={() => setShowDrafts(true)}
-                className="btn btn-outline-primary d-flex align-items-center"
-              >
-                <FileText className="me-2" size={18} />
-                View Drafts
-              </button>
-            </div>
-            <p className="text-muted mt-2 mb-0">
-              Set up your payment instructions with detailed beneficiary information
-            </p>
-          </div>
+    @PutMapping("/{id}")
+    public ResponseEntity<Batch> updateBatch(@PathVariable("id") Long batchId, @RequestBody Batch batchDetails) {
+        try {
+            Batch updatedBatch = batchService.updateBatch(batchId, batchDetails);
+            if (updatedBatch != null) {
+                return new ResponseEntity<>(updatedBatch, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-          <div className="mb-4">
-            <InstructionDetails
-              instructionDetails={instructionDetails}
-              updateInstructionDetails={updateInstructionDetails}
-              errors={errors.instruction}
-            />
-          </div>
+    @DeleteMapping("/{id}")
+    public ResponseEntity<HttpStatus> deleteBatch(@PathVariable("id") Long batchId) {
+        try {
+            boolean deleted = batchService.deleteBatch(batchId);
+            if (deleted) {
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-          <div className="mb-4">
-            <PaymentDetailsTable
-              rows={currentRows}
-              updateRow={updateRow}
-              addRow={addRow}
-              removeRow={removeRow}
-              errors={currentRowErrors}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-              canAddMore={canAddMore}
-            />
-          </div>
-
-          <div className="d-flex justify-content-end gap-3 mt-4">
-            <button
-              onClick={handleDraft}
-              className="btn btn-secondary d-inline-flex align-items-center px-4 py-2"
-              disabled={isSubmitting}
-            >
-              <Save className="me-2" style={{ width: '20px', height: '20px' }} />
-              {isSubmitting ? 'Saving...' : 'Save as Draft'}
-            </button>
-            <button
-              onClick={submitTransaction}
-              className="btn btn-success d-inline-flex align-items-center px-4 py-2"
-              disabled={isSubmitting}
-            >
-              <Send className="me-2" style={{ width: '20px', height: '20px' }} />
-              {isSubmitting ? 'Submitting...' : 'Submit Transaction'}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default PaymentForm;
-
-
-
-
+//   // @PostMapping("/cft")
+//    // public ResponseEntity<List<Batch>> createBatchesFromTransactions(
+//          //  @RequestBody List<Transactions> transactions,
+//            @RequestParam Integer createdBy,
+//            @RequestParam String sourceAccId) {
+//        try {
+//            List<Batch> batches = batchService.createBatchesGroupedByDateAndCurrency(
+//                    transactions,
+//                    createdBy,
+//                    sourceAccId
+//            );
+//            return new ResponseEntity<>(batches, HttpStatus.CREATED);
+//        } catch (Exception e) {
+//            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+}
+ 
