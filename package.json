@@ -41,3 +41,15 @@
     ]
   }
 }
+
+
+
+ to become root user :- sudo -i
+for changing folder permissions :- find /tmp/https-PRD_RBChatbot01/www/html/retail/v3/en-hk-engine-chatbot -type d -exec chmod 3775 {} \;
+
+for changing file permissions:- find /tmp/https-PRD_RBChatbot01/www/html/retail/v3/en-hk-engine-chatbot -type f -exec chmod 1775 {} \;
+
+for copying from tmp to apps :- sudo cp -r /tmp/https-PRD_RBChatbot01/www/html/retail/v3/en-hk-engine-chatbot/* \
+/apps/httpd/instances/https-stg_RBChatbot02/www/html/retail/v3/en-hk-engine-chatbot/
+
+for changing ownership :- sudo chown -R httpadm:httpadm /apps/httpd/instances/https-stg_RBChatbot02/www/html/retail/v3/en-hk-engine-chatbot
